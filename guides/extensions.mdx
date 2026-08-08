@@ -128,7 +128,7 @@ Craft stores the allowlist in your config directory:
 ~/.craft-agent/extensions/url-allowlist.json
 ```
 
-Enter an extension ID, add one or more URL prefixes, and save. Craft enforces the list with a prefix match on every outbound request. A durable non-empty list cannot be widened at runtime by the renderer.
+Enter an extension ID, add one or more URL prefixes, and save. Craft enforces the list with a prefix match on every outbound request. Once you save a non-empty list, the renderer cannot widen it at runtime.
 
 <Note>
   An empty allowlist for an extension means "allow all URLs" and is intended as a development default. Set at least one prefix before shipping a sandbox extension.
@@ -136,9 +136,9 @@ Enter an extension ID, add one or more URL prefixes, and save. Craft enforces th
 
 ### Extension UI surfaces
 
-Sandbox extensions can render their own UI in a dedicated Craft panel. Craft opens each surface as an Electron `BrowserView` with `sandbox` and `contextIsolation` enabled, and gives every extension its own persistent session partition (`persist:ext-<extensionId>`), so cookies and storage stay scoped to that extension.
+Sandbox extensions can render their own UI in a dedicated Craft panel. Craft opens each surface as an Electron `BrowserView` with `sandbox` and `contextIsolation` enabled. Every extension gets its own persistent session partition (`persist:ext-<extensionId>`), so cookies and storage stay scoped to that extension.
 
-Extension surfaces are addressable as regular Craft routes:
+You address extension surfaces as regular Craft routes:
 
 ```text
 extension/{extensionId}/{viewId}
