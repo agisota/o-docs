@@ -104,8 +104,9 @@ Set the `CRAFT_EXTENSION_SANDBOX_ROOT` environment variable to allow an addition
 
 ### Host status
 
-Open **Settings → Extensions → Developer** to see the current host state. Craft shows:
+Open **Settings → Extensions → Developer** to see the current host state. Each workspace runs its own isolated Extension Host with its own capability grants, and the Developer panel lists them all. For each host, Craft shows:
 
+- **Workspace** — which workspace the host belongs to.
 - **Host status** — `stopped`, `starting`, `running`, or `degraded`.
 - **PID** — the operating-system process ID when the host is running.
 - **Loaded extensions** — the sandbox extensions currently loaded in the host.
@@ -116,6 +117,34 @@ If the host crashes, Craft marks it `degraded` and reports the failure message o
 <Note>
   The Extension Host does not auto-start when Craft launches. Start it from the Developer panel when you need to load or test a sandbox extension.
 </Note>
+
+### Network URL allowlist
+
+Sandbox extensions use `network.request` (backed by `proxyFetch`) to reach external URLs. You can restrict each extension to a specific set of URL prefixes from **Settings → Extensions → Developer → URL allowlist**.
+
+Craft stores the allowlist in your config directory:
+
+```text
+~/.craft-agent/extensions/url-allowlist.json
+```
+
+Enter an extension ID, add one or more URL prefixes, and save. Craft enforces the list with a prefix match on every outbound request. A durable non-empty list cannot be widened at runtime by the renderer.
+
+<Note>
+  An empty allowlist for an extension means "allow all URLs" and is intended as a development default. Set at least one prefix before shipping a sandbox extension.
+</Note>
+
+### Extension UI surfaces
+
+Sandbox extensions can render their own UI in a dedicated Craft panel. Craft opens each surface as an Electron `BrowserView` with `sandbox` and `contextIsolation` enabled, and gives every extension its own persistent session partition (`persist:ext-<extensionId>`), so cookies and storage stay scoped to that extension.
+
+Extension surfaces are addressable as regular Craft routes:
+
+```text
+extension/{extensionId}/{viewId}
+```
+
+Opening the same `viewId` again reuses the existing surface instead of creating a second one, and closing the last owner tears the `BrowserView` down.
 
 ## SiYuan plugins
 
