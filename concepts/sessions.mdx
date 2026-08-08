@@ -28,12 +28,12 @@ The Kanban board is a five-column view of every session in the current workspace
 
 ### Auto-run on drop
 
-Dropping a tile onto **In Progress** immediately starts an agent turn for that session, the same as clicking Play on the tile. This gives you a queue-and-run workflow: draft several sessions in Todo, then drag them into In Progress one after another to kick each one off.
+Dropping a tile onto **In Progress** immediately starts an agent turn for that session, the same as clicking Play on the tile. This gives you a queue-and-run workflow. Draft several sessions in Todo, then drag them into In Progress one after another to kick each one off.
 
 You can also configure any other column to run a prompt on drop. Open the column header menu, enable **Auto-run prompt**, and enter the text you want prepended to the session's goal when it lands in that column. Drops into columns without an auto-run prompt only change the status.
 
 <Note>
-  Auto-run drops are queued per workspace and skip any session that is already processing, so rapid re-drops cannot double-fire the same turn.
+  Craft Agents queues auto-run drops per workspace and skips any session that is already processing, so rapid re-drops cannot double-fire the same turn.
 </Note>
 
 ### Grouping

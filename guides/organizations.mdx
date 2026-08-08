@@ -4,7 +4,7 @@ sidebarTitle: "Organizations"
 description: "Create local-first organizations in Craft Agents, invite teammates by email or username, and link workspaces to an org for shared context."
 ---
 
-Organizations group teammates around shared workspaces. They're local-first — the roster lives in a file on your machine — so you can create an org, invite people, and link a workspace without standing up any backend. When you point Craft Agents at a shared server, invite redemption uses that server so members can join from any device.
+Organizations group teammates around shared workspaces. They're local-first: the roster lives in a file on your machine, so you can create an org, invite people, and link a workspace without standing up any backend. When you point Craft Agents at a shared server, invite redemption uses that server so members can join from any device.
 
 ## When to use organizations
 
@@ -14,7 +14,7 @@ Use an organization when:
 - You need role-based control over who can invite others or change org settings.
 - You're running a self-hosted Craft server and want per-team scoping.
 
-For solo work, you don't need an org — sessions and workspaces already scope themselves to the current device.
+For solo work, you don't need an org. Sessions and workspaces already scope themselves to the current device.
 
 ## Roles
 
@@ -26,29 +26,29 @@ Every member has one of three roles:
 | **Admin** | ✅ | ✅ (except owners) | ❌ |
 | **Member** | ❌ | ❌ | ❌ |
 
-An org always has at least one owner. Attempting to demote the last owner is rejected.
+An org always has at least one owner. Craft Agents rejects any attempt to demote the last owner.
 
 ## Set your identity
 
-Open **Settings → Organizations** and fill in **Username** and **Email**. These fields are how teammates find you when they send invites — the values are stored locally and shared only when you accept an invite.
+Open **Settings → Organizations** and fill in **Username** and **Email**. Teammates use these fields to find you when they send invites. Craft Agents stores the values locally and shares them only when you accept an invite.
 
 ## Create an organization
 
 <Steps>
   <Step title="Open Settings → Organizations">
-    You'll see a list of orgs you belong to and a **Create organization** form.
+    You see a list of orgs you belong to and a **Create organization** form.
   </Step>
   <Step title="Name the org">
-    Enter a display name (for example, `Acme Research`) and click **Create**. You become the initial owner.
+    Enter a display name (for example, `Acme Research`) and select **Create**. You become the initial owner.
   </Step>
   <Step title="Invite teammates">
-    With the org selected, enter an **email or username** and pick **Member** or **Admin**. Click **Send invite** to generate a pending invite token.
+    With the org selected, enter an **email or username** and select **Member** or **Admin**. Select **Send invite** to generate a pending invite token.
   </Step>
 </Steps>
 
 ## Accept an invite
 
-When someone invites you, they'll share an **invite token**. In **Settings → Organizations**, paste the token into the **Accept invite** field and click **Accept**. The invite is redeemed against your configured Craft server when `CRAFT_SERVER_URL` is set, and locally otherwise.
+When someone invites you, they share an **invite token**. In **Settings → Organizations**, paste the token into the **Accept invite** field and select **Accept**. Craft Agents redeems the invite against your configured Craft server when `CRAFT_SERVER_URL` is set, and locally otherwise.
 
 ## Link a workspace to an org
 
@@ -56,14 +56,14 @@ To scope a workspace to an organization:
 
 1. Open the workspace you want to share.
 2. Go to **Settings → Organizations** and select the target org.
-3. Click **Link this workspace**.
+3. Select **Link this workspace**.
 
 Once linked, workspace-scoped features (labels, statuses, skills) belong to the org and are available to everyone who joins.
 
 <Note>
-  Unlinking a workspace only removes the org association — the workspace and its data stay on the machine that created it.
+  Unlinking a workspace only removes the org association. The workspace and its data stay on the machine that created it.
 </Note>
 
 ## Storage
 
-The org roster lives at `~/.craft-agent/orgs.json`. Workspace-to-org links are recorded in each workspace's `config.json`. Neither file stores secrets — invite tokens are single-use and expire when redeemed.
+The org roster lives at `~/.craft-agent/orgs.json`. Each workspace records its org link in its own `config.json`. Neither file stores secrets. Invite tokens are single-use and expire when redeemed.
