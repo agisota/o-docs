@@ -1,0 +1,85 @@
+---
+title: "Mind Map Views for Sessions, Notes, and Knowledge"
+sidebarTitle: "Mind Maps"
+description: "Craft Agents auto-generates mind maps from sessions, notes, and knowledge documents. Learn how to explore, pin, and export them."
+---
+
+Craft Agents derives a mind map for any [session](/concepts/sessions), note, or knowledge document so you can see its structure at a glance. Maps are read-only projections of the underlying content: exploring them never edits the source. You can pin a layout, work distraction-free in zen mode, ask the agent to clean up the outline, or export the map as a note.
+
+## Opening a map
+
+Every entity surface (session, note, knowledge document) now shows a **Views** tab bar above the main content.
+
+| Tab | What it shows |
+|---|---|
+| **Standard** | The regular chat, editor, or document view. |
+| **Map** | A pannable SVG mind map of the entity. |
+| **Outline** | A nested list of the same tree, useful for keyboard navigation. |
+| **Graph** | The SiYuan knowledge graph (only when a SiYuan source is connected). |
+| **SiYuan map** | The legacy SiYuan mind map (session surfaces, when connected). |
+
+Your last-used tab is remembered per entity, so re-opening a session or note returns you to whichever view you left it on.
+
+### How the map is built
+
+The tree is derived directly from the entity — nothing is stored back to the source.
+
+- **Sessions** — the root is the session title. Each user message starts a turn; assistant replies and tool calls hang beneath it. The most recent 200 turns are kept; older turns are truncated with a note on the root.
+- **Notes** — the root is the note title. Markdown headings (`#`, `##`, `###`) become the tree. Notes with no headings show a single body node. Backlinks appear as leaf nodes.
+- **Knowledge documents** — the root is the document title. Child blocks become branches; if the document has no children, its outline is parsed instead. Backlinks appear alongside.
+
+<Note>
+  The map updates live as you chat, edit the note, or the knowledge document changes. A **Live** badge in the toolbar confirms it is tracking the source.
+</Note>
+
+## Navigating the map
+
+- **Pan** — drag the background.
+- **Zoom** — scroll wheel, or use the zoom buttons in the toolbar.
+- **Fit** — press the **Fit** button to recenter the whole map.
+- **Collapse a branch** — click the toggle on any node with children.
+- **Search** — open the search box in the toolbar to dim nodes that don't match your query.
+- **Jump to source** — double-click a node to switch to the Standard view and scroll to the matching message, heading, or block.
+
+A minimap appears in the bottom-right corner once the map has more than a dozen nodes. Drag inside it to reposition the viewport.
+
+## Split view
+
+Toggle **Split** in the map toolbar to show the map and the outline side by side. Selection is synchronized between the two panes, so clicking a heading in the outline highlights it on the map and vice versa. Split view is only available while the **Map** tab is active.
+
+## Zen mode
+
+Click the **Zen** button (or the maximize icon) to hide the sidebar and surrounding chrome and give the map the full window. Press **Esc** to exit. Leaving the Map tab also clears zen mode automatically.
+
+## Pinning a layout
+
+The live map re-derives whenever the source changes. Pin the current map to freeze its structure and collapse state so it survives edits and restarts.
+
+1. Arrange the map how you want it (collapse noise, expand the branches you care about).
+2. Click **Pin** in the toolbar. The badge switches from **Live** to **Pinned**.
+3. Toggle collapse on any node — the pin snapshot updates in place.
+
+When the underlying content changes, a banner appears on the pinned map:
+
+- **Keep pin** — dismiss the banner and keep your snapshot as-is.
+- **Rebuild from source** — regenerate the pin from the current live map, preserving your collapse state.
+- **Unpin** — click **Pin** again to remove the snapshot and return to live tracking.
+
+Pins are stored locally per entity — they are not written back into the session, note, or knowledge document.
+
+## Improve map (AI enrich)
+
+Click **Improve map** to send the current outline to the connected agent and get a cleaned-up version back. Craft Agents shows the result as a **draft** overlay so you can compare before committing.
+
+- **Accept** — pins the improved map and replaces the live view. The original source is untouched.
+- **Discard** — throws away the draft and returns to the live map.
+
+If the request fails or no LLM connection is available, Craft Agents falls back to an offline heuristic pass and surfaces a toast so you know which mode ran.
+
+## Save as note
+
+Use **Save as note** to materialize the current map (live, pinned, or accepted draft) as a Markdown note in the workspace. The note is created inside the `mindmaps/` folder with the root label as its title, and Craft Agents pins the map to match what was saved. This is the way to hand a map off to another tool or share it as plain text — the source entity is not modified.
+
+## Keyboard shortcut
+
+Press **Esc** while the Map tab is open to exit zen mode. See the full [keyboard shortcuts reference](/reference/keyboard-shortcuts) for other app-wide bindings.
