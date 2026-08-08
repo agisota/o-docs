@@ -37,6 +37,7 @@
             "group": "Core Concepts",
             "pages": [
               "concepts/sessions",
+              "concepts/session-views",
               "concepts/workspaces",
               "concepts/permission-modes",
               "concepts/llm-connections"
