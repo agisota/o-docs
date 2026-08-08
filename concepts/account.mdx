@@ -1,0 +1,91 @@
+---
+title: "Craft Agents Account: Profile, Connections, and Security"
+sidebarTitle: "Account & Connections"
+description: "Use the top-left Account menu to switch workspaces, edit your local profile, connect services like SiYuan Cloud, and check credential health."
+---
+
+Craft Agents keeps your identity local. There is no cloud sign-in and no shared user database — instead, a **local profile** on your machine anchors your workspaces, service connections, and entitlements. External services like SiYuan Cloud are treated as **service connections** you attach per workspace, not as your root identity.
+
+Everything lives behind one control: the **Account menu** in the top-left of the app.
+
+## The Account menu
+
+Click your workspace avatar in the top-left corner of the window to open the Account menu. It has four sections:
+
+| Section | What it does |
+|---|---|
+| **Profile** | Shows your local profile name and mode. Choose **Edit profile…** to rename it. |
+| **Workspaces** | Lists every workspace with health indicators. Click to switch, or select **New workspace** to create one. |
+| **Connections** | Summarises service connections (e.g. "1 connected · 0 expired") and shows SiYuan Cloud status at a glance. |
+| **Account & Security** | Shows credential store health and offers a shortcut to reset app data. |
+
+Choose **Manage accounts & connections…** to jump straight to the full settings page.
+
+<Note>
+  The Account menu replaces the standalone workspace switcher. There is only ever one visible account control, so switching workspaces, editing your profile, and managing service connections all happen from the same place.
+</Note>
+
+## Accounts & Connections settings
+
+Open **Settings → Accounts & Connections** (or use the shortcut from the Account menu) to manage everything the menu summarises.
+
+### Profile
+
+Your profile is stored locally in `~/.craft-agent/identity.json`. It records a display name, a stable local `id`, and a `mode` (for example, `local`). No secrets are written to this file — credentials live separately in the encrypted credential store.
+
+Edit the display name inline and click **Save**. The new name flows to the Account menu and window title immediately.
+
+### Service Connections
+
+This block lists everything Craft Agents can talk to on your behalf. Connections are grouped by ownership:
+
+- **Owned connections** are managed here. You can sign out at any time.
+- **Reflected connections** are read-only mirrors of things you configured elsewhere (LLM providers under **AI Settings**, local knowledge bases under **Knowledge Settings**). Use the **Open AI Settings** or **Open Knowledge Settings** button to jump to the page that actually owns the setting.
+
+Click **Refresh** at the top-right of the section to re-query each provider's live status.
+
+### Knowledge Sync (SiYuan Cloud)
+
+SiYuan Cloud sync is a service connection scoped to the active workspace. It has its own block so you can see subscription state alongside sync state.
+
+To connect:
+
+<Steps>
+  <Step title="Open the connect form">
+    In the **Knowledge Sync** block, select **Connect SiYuan Cloud**.
+  </Step>
+  <Step title="Enter an access token">
+    Paste your SiYuan Cloud access token. An **access token is required** — Connect and Reconnect are rejected without one, both in the UI and on the backend. Optionally add an account label (typically your email) so you can tell multiple accounts apart.
+  </Step>
+  <Step title="Confirm">
+    Select **Connect**. The row updates to `connected` and the subscription status appears below.
+  </Step>
+</Steps>
+
+The block also shows:
+
+- **Account** — the label you gave the connection.
+- **Sync status** — one of `connected`, `syncing`, `expired`, `error`, or `disconnected`.
+- **Subscription** — the cached entitlement for `cloud-sync`: `trial`, `active`, `expired`, or `none`. If your subscription lapses, a warning banner appears and sync pauses. Local editing continues to work.
+- **Devices** — currently shows the current device only.
+
+Use **Reconnect** to rotate the token or **Sign out** to remove the connection.
+
+### Account & Security
+
+<CardGroup cols={2}>
+  <Card title="Credential store health" icon="shield-check">
+    Runs a check across every stored credential and reports `ok` or the number of issues found. Click **Run health check** to re-run at any time.
+  </Card>
+  <Card title="Reset app data" icon="trash">
+    Logs out of everything — clears all credentials, removes service connections, and resets the local identity file. Conversations are deleted. This is destructive; you'll be asked to confirm.
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Reset app data** now fully clears the identity file. After a reset, no service connections remain and you'll return to a fresh local profile.
+</Warning>
+
+## Where credentials are stored
+
+Craft Agents never puts secrets in `identity.json`. Access tokens for service connections go into the same encrypted credential store as everything else, namespaced per workspace so two workspaces can hold independent tokens for the same provider. See [Workspaces](/concepts/workspaces) for the surrounding directory layout.

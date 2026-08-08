@@ -38,6 +38,7 @@
             "pages": [
               "concepts/sessions",
               "concepts/workspaces",
+              "concepts/account",
               "concepts/permission-modes",
               "concepts/llm-connections"
             ]
