@@ -90,6 +90,36 @@ Extensions declare the capabilities they need using a fixed vocabulary. The most
 
 You can also record extension-level permission overrides in your workspace's permissions config, alongside your existing agent permission modes.
 
+## SiYuan plugins
+
+SiYuan plugins appear in the Extension Center under the `siyuan-plugin` runtime. Their code continues to run inside the SiYuan runtime — Craft never executes them in the main process or the Extension Host. Instead, Craft reads each plugin's `plugin.json` (plus an optional `craft` block) and projects the declared contributions into the shell.
+
+Each SiYuan plugin card shows a compatibility level badge so you know how deeply it integrates with Craft:
+
+| Level | What Craft projects |
+|---|---|
+| **L0** | Manifest is present but incomplete. The card is visible; no commands or panels appear in Craft. |
+| **L1** | Discovery only. The plugin appears in the catalog and is reachable through the SiYuan compatibility view. |
+| **L2** | Commands. Plugin commands show up in the omnibox and command palette as `siyuan-plugin:<name>:<command>`. |
+| **L3** | Commands, docks, tabs, and status items are projected into Craft's native panels. |
+
+Plugins that declare `requiresFullChrome: true` in their `craft` block are clamped to L1, and their cards carry a **Requires full SiYuan** tag. Use the **Open in full SiYuan** action on the card to launch the compatibility view at `knowledge/notebook/__full__`, which loads the plugin inside the full SiYuan interface.
+
+Docks declared by L3 plugins are mapped onto Craft panel slots:
+
+| SiYuan dock | Craft slot |
+|---|---|
+| `LeftTop` | Navigator (primary) |
+| `LeftBottom` | Navigator (secondary) |
+| `RightTop` / `RightBottom` | Inspector |
+| `BottomLeft` / `BottomRight` | Bottom panel |
+
+Permissions declared in the `craft` block still go through the standard extension permission model. Contributions with no explicit grants receive the default install-time grants; contributions that declare an empty grant list are dropped fail-closed.
+
+<Note>
+  Live plugin install and enable through the SiYuan kernel API is not wired up yet. Today, the SiYuan Bazaar provider is a stub and enable/disable is tracked only in Craft's local state store — SiYuan itself is not notified.
+</Note>
+
 ## Registries
 
 The Extension Center is designed so one catalog is not one runtime. The **Registries** section lists which catalog providers Craft is querying. Today, the curated Craft catalog is active. Additional providers like the SiYuan Bazaar appear as stubs and will become active in a later release.
