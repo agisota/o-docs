@@ -92,7 +92,7 @@ You can also record extension-level permission overrides in your workspace's per
 
 ## Extension Host
 
-Extensions that declare the `craft-sandbox` runtime run inside the Extension Host, a dedicated Electron utility process spawned by Craft. The host is isolated from the main app: it starts with a scrubbed environment (no `NODE_OPTIONS`, no secret-shaped variables) and can only load modules from an allowlisted directory.
+Extensions that declare the `craft-sandbox` runtime run inside the Extension Host, a dedicated Electron utility process spawned by Craft. The host is isolated from the main app. It starts with a scrubbed environment that drops `NODE_OPTIONS` and any variables that look like secrets. It can only load modules from an allowlisted directory.
 
 The default allowlist is your Extension Host sandbox directory:
 
@@ -100,7 +100,7 @@ The default allowlist is your Extension Host sandbox directory:
 ~/.craft-agent/extensions/sandbox
 ```
 
-Set the `CRAFT_EXTENSION_SANDBOX_ROOT` environment variable to allow an additional root, for example when developing locally. Craft resolves each path through the OS realpath before loading, so symlinks that point outside the allowlist are rejected.
+Set the `CRAFT_EXTENSION_SANDBOX_ROOT` environment variable to allow an additional root, for example when developing locally. Craft resolves each path through the OS realpath before loading and rejects symlinks that point outside the allowlist.
 
 ### Host status
 
@@ -108,7 +108,7 @@ Open **Settings → Extensions → Developer** to see the current host state. Cr
 
 - **Host status** — `stopped`, `starting`, `running`, or `degraded`.
 - **PID** — the operating-system process ID when the host is running.
-- **Loaded extensions** — the sandbox modules currently loaded in the host.
+- **Loaded extensions** — the sandbox extensions currently loaded in the host.
 - **executesSiyuanPlugins** — always `false`. SiYuan plugins never execute in the Extension Host.
 
 If the host crashes, Craft marks it `degraded` and reports the failure message on the same panel. Stopping the host intentionally leaves it `stopped` until you start it again.
