@@ -65,7 +65,7 @@ When the underlying content changes, a banner appears on the pinned map:
 - **Rebuild from source** — regenerate the pin from the current live map, preserving your collapse state.
 - **Unpin** — click **Pin** again to remove the snapshot and return to live tracking.
 
-Craft Agents stores pins locally per entity. Pins are never written back into the session, note, or knowledge document.
+Craft Agents saves pins as JSON files under `<workspace>/mindmaps/`, one file per entity, so they travel with the workspace across machines. If the workspace is unavailable, Craft Agents falls back to a local browser cache. Pins are never written back into the session, note, or knowledge document.
 
 ## Improve map (AI enrich)
 
