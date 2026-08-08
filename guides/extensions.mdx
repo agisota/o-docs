@@ -92,7 +92,7 @@ You can also record extension-level permission overrides in your workspace's per
 
 ## SiYuan plugins
 
-SiYuan plugins appear in the Extension Center under the `siyuan-plugin` runtime. Their code continues to run inside the SiYuan runtime — Craft never executes them in the main process or the Extension Host. Instead, Craft reads each plugin's `plugin.json` (plus an optional `craft` block) and projects the declared contributions into the shell.
+SiYuan plugins appear in the Extension Center under the `siyuan-plugin` runtime. Their code continues to run inside the SiYuan runtime. Craft never executes them in the main process or the Extension Host. Instead, Craft reads each plugin's `plugin.json` (plus an optional `craft` block) and projects the declared contributions into the shell.
 
 Each SiYuan plugin card shows a compatibility level badge so you know how deeply it integrates with Craft:
 
@@ -101,11 +101,11 @@ Each SiYuan plugin card shows a compatibility level badge so you know how deeply
 | **L0** | Manifest is present but incomplete. The card is visible; no commands or panels appear in Craft. |
 | **L1** | Discovery only. The plugin appears in the catalog and is reachable through the SiYuan compatibility view. |
 | **L2** | Commands. Plugin commands show up in the omnibox and command palette as `siyuan-plugin:<name>:<command>`. |
-| **L3** | Commands, docks, tabs, and status items are projected into Craft's native panels. |
+| **L3** | Craft projects commands, docks, tabs, and status items into its native panels. |
 
-Plugins that declare `requiresFullChrome: true` in their `craft` block are clamped to L1, and their cards carry a **Requires full SiYuan** tag. Use the **Open in full SiYuan** action on the card to launch the compatibility view at `knowledge/notebook/__full__`, which loads the plugin inside the full SiYuan interface.
+Craft caps any plugin that declares `requiresFullChrome: true` in its `craft` block at L1, and adds a **Requires full SiYuan** tag to its card. Select **Open in full SiYuan** on the card to launch the compatibility view. The view loads the plugin inside the full SiYuan interface at `knowledge/notebook/__full__`.
 
-Docks declared by L3 plugins are mapped onto Craft panel slots:
+Craft maps docks declared by L3 plugins onto its own panel slots:
 
 | SiYuan dock | Craft slot |
 |---|---|
@@ -114,7 +114,7 @@ Docks declared by L3 plugins are mapped onto Craft panel slots:
 | `RightTop` / `RightBottom` | Inspector |
 | `BottomLeft` / `BottomRight` | Bottom panel |
 
-Permissions declared in the `craft` block still go through the standard extension permission model. Contributions with no explicit grants receive the default install-time grants; contributions that declare an empty grant list are dropped fail-closed.
+Permissions declared in the `craft` block still go through the standard extension permission model. Contributions with no explicit grants receive the default install-time grants. Contributions that declare an empty grant list are dropped, so a plugin can opt out of a capability by declaring nothing.
 
 <Note>
   Live plugin install and enable through the SiYuan kernel API is not wired up yet. Today, the SiYuan Bazaar provider is a stub and enable/disable is tracked only in Craft's local state store — SiYuan itself is not notified.
