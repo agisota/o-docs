@@ -116,8 +116,22 @@ Craft maps docks declared by L3 plugins onto its own panel slots:
 
 Permissions declared in the `craft` block still go through the standard extension permission model. Contributions with no explicit grants receive the default install-time grants. Contributions that declare an empty grant list are dropped, so a plugin can opt out of a capability by declaring nothing.
 
+### Where the plugin list comes from
+
+Craft discovers installed SiYuan plugins in this order:
+
+1. If a running SiYuan kernel is reachable, Craft asks it for the installed plugin list and reads the petals file.
+2. If the kernel is unavailable, Craft falls back to a filesystem scan of your SiYuan data directory, reading `data/plugins/*/plugin.json` and `storage/petal/petals.json`.
+3. If neither source returns anything, the list is empty.
+
+The filesystem fallback means the Extension Center still shows your installed SiYuan plugins when the kernel is offline.
+
+### Enable and disable
+
+Toggling a SiYuan plugin in the Extension Center always writes to Craft's own state store, so the setting sticks even when the kernel is offline. On the next refresh, Craft prefers its local store over the kernel's petals file. When the kernel is running, Craft also mirrors the change to it through the standard plugin-enable API.
+
 <Note>
-  Live plugin install and enable through the SiYuan kernel API is not wired up yet. Today, the SiYuan Bazaar provider is a stub and enable/disable is tracked only in Craft's local state store — SiYuan itself is not notified.
+  Craft never rewrites SiYuan's `petals.json` itself. Remote Bazaar browsing (for plugins you have not installed yet) is still on the roadmap.
 </Note>
 
 ## Registries
