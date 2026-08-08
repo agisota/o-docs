@@ -131,7 +131,9 @@ The **Catalog** section can also show remote packages from the SiYuan Bazaar whe
 
 ### Install and uninstall Bazaar plugins
 
-When a SiYuan kernel is running, Bazaar entries in the catalog expose **Install** and **Uninstall** actions. Craft never downloads the plugin zip itself. Instead, it asks the kernel to install or remove the package through the standard SiYuan Bazaar API, so the files live under your SiYuan data directory the same way they would if you installed the plugin from SiYuan directly. Newly installed plugins are enabled by default; uninstalling a plugin also clears Craft's local enable/disable state for it.
+When a SiYuan kernel is running, Bazaar entries in the catalog expose **Install** and **Uninstall** actions. Craft never downloads the plugin zip itself. Instead, it asks the kernel to install or remove the package through the standard SiYuan Bazaar API. The files land under your SiYuan data directory, the same as if you installed the plugin from SiYuan directly.
+
+Craft enables newly installed plugins by default. Uninstalling a plugin also clears its entry from Craft's local enable/disable state.
 
 <Note>
   Craft keeps tokens read from `conf.json` in memory only and never logs them. Craft also never downloads or spawns SiYuan itself.
@@ -142,12 +144,12 @@ When a SiYuan kernel is running, Bazaar entries in the catalog expose **Install*
 Toggling a SiYuan plugin in the Extension Center always writes to Craft's own state store, so the setting sticks even when the kernel is offline. On the next refresh, Craft prefers its local store over the kernel's petals file. When the kernel is running, Craft also mirrors the change to it through the standard plugin-enable API.
 
 <Note>
-  Craft never rewrites SiYuan's `petals.json` itself. Bazaar install and uninstall require a running SiYuan kernel; if the kernel is offline, the Bazaar entries and their actions are hidden.
+  Craft never rewrites SiYuan's `petals.json` itself. Bazaar install and uninstall require a running SiYuan kernel. If the kernel is offline, Craft hides the Bazaar entries and their actions.
 </Note>
 
 ## Registries
 
-The Extension Center is designed so one catalog is not one runtime. The **Registries** section lists which catalog providers Craft is querying. The curated Craft catalog is always active. The SiYuan Bazaar is active when a SiYuan kernel is reachable and contributes both installed and remote plugins to the catalog, along with **Install** and **Uninstall** actions on remote entries.
+The Extension Center is designed so one catalog is not one runtime. The **Registries** section lists which catalog providers Craft is querying. The curated Craft catalog is always active. The SiYuan Bazaar is active when a SiYuan kernel is reachable, and contributes both installed and remote plugins to the catalog. Remote Bazaar entries also expose **Install** and **Uninstall** actions.
 
 ## Related
 
