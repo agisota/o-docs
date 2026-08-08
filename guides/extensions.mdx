@@ -125,12 +125,12 @@ Craft discovers installed SiYuan plugins in this order:
 3. If the kernel is unreachable, Craft falls back to a filesystem scan of your SiYuan data directory, reading `data/plugins/*/plugin.json` and `storage/petal/petals.json`.
 4. If none of the above return anything, the list is empty.
 
-When both the kernel and the filesystem are available, Craft merges them: the kernel supplies the installed-package rows, and the filesystem fills in the fuller `plugin.json` fields (including any `craft` block).
+When both the kernel and the filesystem are available, Craft merges them. The kernel supplies the installed-package rows. The filesystem fills in the fuller `plugin.json` fields, including any `craft` block.
 
 The **Catalog** section can also show remote packages from the SiYuan Bazaar when the kernel is reachable. Installed plugins win over remote entries when they share a name, so a plugin only appears once. Craft never auto-installs a Bazaar plugin.
 
 <Note>
-  Tokens read from `conf.json` are used in-process only and never logged. Craft never downloads or spawns SiYuan itself.
+  Craft keeps tokens read from `conf.json` in memory only and never logs them. Craft also never downloads or spawns SiYuan itself.
 </Note>
 
 ### Enable and disable
@@ -138,7 +138,7 @@ The **Catalog** section can also show remote packages from the SiYuan Bazaar whe
 Toggling a SiYuan plugin in the Extension Center always writes to Craft's own state store, so the setting sticks even when the kernel is offline. On the next refresh, Craft prefers its local store over the kernel's petals file. When the kernel is running, Craft also mirrors the change to it through the standard plugin-enable API.
 
 <Note>
-  Craft never rewrites SiYuan's `petals.json` itself. Installing plugins from the Bazaar catalog is browse-only for now — you can see remote entries, but installing them from Craft is still on the roadmap.
+  Craft never rewrites SiYuan's `petals.json` itself. The Bazaar catalog is browse-only for now. You can see remote entries, but installing them from Craft is still on the roadmap.
 </Note>
 
 ## Registries
