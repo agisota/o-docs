@@ -1,0 +1,69 @@
+---
+title: "Workspaces: Project Directories in Craft Agents"
+sidebarTitle: "Workspaces"
+description: "Workspaces connect Craft Agents to a project directory. Each workspace stores its own sessions, sources, skills, automations, and configuration."
+---
+
+A workspace is Craft Agents' way of anchoring the AI agent to a specific project on your machine. When you open a workspace, the agent's working directory becomes that project folder — so it can read files, run commands, and make edits in exactly the right place. Each workspace is fully self-contained: it keeps its own conversation history, connected sources, custom skills, automations, and settings completely separate from every other workspace you have open.
+
+## What a workspace stores
+
+Every workspace gets its own directory inside `~/.craft-agent/workspaces/{id}/`. The table below explains what each item inside that directory is for.
+
+| Path | Purpose |
+|---|---|
+| `config.json` | Workspace name, associated project directory path, and LLM model preferences |
+| `theme.json` | Visual theme overrides that apply only to this workspace |
+| `sessions/` | All session data for this workspace, stored as JSONL files |
+| `sources/` | Configuration for each connected source (MCP servers, REST APIs, local files) |
+| `skills/` | Custom agent instructions stored per-workspace |
+| `automations.json` | Event-driven automation rules (label changes, schedules, tool hooks) |
+| `statuses/` | Custom status definitions for the session workflow |
+
+<Note>
+  The `~/.craft-agent/` root also holds a top-level `config.json` (listing all workspaces and global LLM connections), `credentials.enc` (AES-256-GCM encrypted credentials), and `preferences.json` (app-level preferences). Workspace directories never store unencrypted credentials.
+</Note>
+
+## Creating a workspace
+
+<Steps>
+  <Step title="Launch Craft Agents">
+    Open the app. If this is your first time, the new workspace prompt appears automatically.
+  </Step>
+  <Step title="Choose a project folder">
+    Click **New Workspace** in the sidebar or navigate to **Settings → Workspaces → Add Workspace**. Select the root directory of your project in the folder picker.
+  </Step>
+  <Step title="Name your workspace">
+    Give the workspace a descriptive name — this appears in the sidebar and in the window title when the workspace is active.
+  </Step>
+  <Step title="(Optional) Set a default LLM connection">
+    Choose which LLM connection this workspace should use by default. You can change this at any time in workspace settings.
+  </Step>
+</Steps>
+
+## Switching between workspaces
+
+All your workspaces are listed in the left sidebar. Click any workspace name to switch to it. The session list, sources, and agent context all update immediately to reflect the selected workspace.
+
+<Tip>
+  You can have multiple workspaces open at the same time — one for your backend API project, another for your design system, for example. Each maintains its own independent session history and agent context.
+</Tip>
+
+## Workspace-level settings
+
+Each workspace has settings that are independent of the global app configuration. To open them, click the workspace name in the sidebar and choose **Workspace Settings**, or navigate to **Settings → Workspaces** and select the workspace.
+
+<CardGroup cols={2}>
+  <Card title="Theme" icon="palette">
+    Apply a colour theme to a specific workspace so you can tell at a glance which project you're working in. Workspace themes override the app-level theme.
+  </Card>
+  <Card title="LLM model preferences" icon="cpu">
+    Pin a specific LLM connection and model to this workspace. Useful if you want to use a cheaper model for routine tasks in one project and a more powerful model for another.
+  </Card>
+  <Card title="Custom statuses" icon="list-check">
+    Add, rename, or reorder the session status stages (Todo, In Progress, Needs Review, Done) to match your team's workflow.
+  </Card>
+  <Card title="Automations" icon="bolt">
+    Configure event-driven automations scoped to this workspace — for example, trigger a summary session every Friday at 5 pm, or alert you when a session is labelled `urgent`.
+  </Card>
+</CardGroup>

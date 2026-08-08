@@ -1,0 +1,70 @@
+---
+title: "Install Craft Agents on macOS, Windows, and Linux"
+sidebarTitle: "Installation"
+description: "Download and install Craft Agents on macOS, Windows, or Linux. Build from source using Bun for custom deployments."
+---
+
+Craft Agents ships as a native desktop application for macOS, Windows, and Linux. The fastest way to get up and running is the one-line installer, which downloads the latest release and sets everything up automatically. If you prefer full control over the build, you can also compile from source using Bun.
+
+## One-Line Install (Recommended)
+
+<Tabs>
+  <Tab title="macOS">
+    Open Terminal and run:
+
+    ```bash
+    curl -fsSL https://agents.craft.do/install-app.sh | bash
+    ```
+
+    The installer downloads the latest release, verifies its integrity, and installs Craft Agents to your Applications folder.
+  </Tab>
+  <Tab title="Linux">
+    Open a terminal and run:
+
+    ```bash
+    curl -fsSL https://agents.craft.do/install-app.sh | bash
+    ```
+
+    The installer detects your distribution and places the binary in the appropriate location, adding it to your PATH.
+  </Tab>
+  <Tab title="Windows">
+    Open **PowerShell** and run:
+
+    ```powershell
+    irm https://agents.craft.do/install-app.ps1 | iex
+    ```
+
+    The installer downloads the latest release and installs Craft Agents under `%LOCALAPPDATA%\Programs`.
+  </Tab>
+</Tabs>
+
+## Build from Source
+
+If you want to customize Craft Agents or contribute to its development, you can build directly from the open-source repository. You'll need the [Bun](https://bun.sh/) runtime installed before you begin.
+
+```bash
+git clone https://github.com/lukilabs/craft-agents-oss.git
+cd craft-agents-oss
+bun install
+bun run electron:start
+```
+
+During development, use `bun run electron:dev` instead of `electron:start` to enable hot reload so changes are reflected immediately without restarting.
+
+### Requirements
+
+| Requirement | Notes |
+|-------------|-------|
+| **Bun runtime** | Required for source builds. Install at [bun.sh](https://bun.sh/). |
+| **macOS, Windows, or Linux** | All three platforms are supported. |
+| **Git** | Required to clone the repository. |
+
+<Note>
+  OAuth integrations for Slack and Microsoft require client credentials baked into the build. Create a `.env` file in the repository root and set `MICROSOFT_OAUTH_CLIENT_ID`, `SLACK_OAUTH_CLIENT_ID`, and `SLACK_OAUTH_CLIENT_SECRET` before building if you need those integrations. Google OAuth credentials are provided per-user at runtime — no build-time setup required.
+</Note>
+
+## Headless Server Installation
+
+Craft Agents can also run as a headless server on a remote machine — useful for long-running sessions, CI/CD pipelines, or accessing your workspace from multiple devices. The desktop app connects to the remote server as a thin client, while all session logic and LLM calls run server-side.
+
+See the [Remote Server guide](/guides/remote-server) for full setup instructions, including TLS configuration and Docker deployment.

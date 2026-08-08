@@ -1,0 +1,235 @@
+---
+title: "craft-cli run: Self-Contained Agent Execution"
+sidebarTitle: "run Command"
+description: "craft-cli run spawns a temporary server, runs an agent prompt, streams the response, and exits — no separate server setup required."
+---
+
+The `run` command is the simplest way to use Craft Agents from the terminal. It is entirely self-contained: it spawns a local headless server, creates a session, sends your prompt, streams the AI response to stdout, and then tears everything down when it finishes — no separate server process, no pre-existing workspace, and no configuration files required.
+
+## Basic Usage
+
+```bash
+craft-cli run "Summarize the README in this repo"
+```
+
+The only prerequisite is an API key for your chosen LLM provider. By default, `run` uses Anthropic (Claude), so you can set `ANTHROPIC_API_KEY` and go:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+craft-cli run "What does this codebase do?"
+```
+
+---
+
+## Flags
+
+<ParamField query="--provider" type="string" default="anthropic">
+  LLM provider to use. Supported values: `anthropic`, `openai`, `google`, `openrouter`, `groq`, `mistral`, `deepseek`, `xai`, `cerebras`, `huggingface`, `amazon-bedrock`. Falls back to the `LLM_PROVIDER` environment variable.
+</ParamField>
+
+<ParamField query="--model" type="string">
+  Model ID to use (e.g. `claude-sonnet-4-5-20250929`, `gpt-4o`, `gemini-2.0-flash`). Falls back to `LLM_MODEL`. If omitted, the provider's default model is used.
+</ParamField>
+
+<ParamField query="--api-key" type="string">
+  API key for the chosen provider. Falls back to `LLM_API_KEY`, then to provider-specific environment variables such as `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
+</ParamField>
+
+<ParamField query="--base-url" type="string">
+  Custom API endpoint. Use this for proxies, OpenRouter, or self-hosted models. Falls back to `LLM_BASE_URL`.
+</ParamField>
+
+<ParamField query="--workspace-dir" type="string">
+  Path to a local directory to register as a workspace before running. Gives the agent access to your files.
+</ParamField>
+
+<ParamField query="--source" type="string">
+  Enable a named source (e.g. `github`, `linear`). Repeatable — pass `--source` multiple times to enable several sources at once.
+</ParamField>
+
+<ParamField query="--mode" type="string" default="allow-all">
+  Permission mode for the session. `safe` is read-only; `ask` prompts before any write; `allow-all` auto-approves everything.
+</ParamField>
+
+<ParamField query="--output-format" type="string" default="text">
+  Output format: `text` (human-readable, default) or `stream-json` (newline-delimited JSON events, useful for programmatic consumption).
+</ParamField>
+
+<ParamField query="--no-cleanup" type="boolean" default="false">
+  Skip deletion of the temporary session and server on exit. Useful for debugging — you can inspect the session state afterwards.
+</ParamField>
+
+<ParamField query="--server-entry" type="string">
+  Path to a custom server entry point. For advanced use cases where you need to run a modified server binary.
+</ParamField>
+
+---
+
+## Multi-Provider Examples
+
+<Tabs>
+  <Tab title="Anthropic (default)">
+    ```bash
+    export ANTHROPIC_API_KEY=sk-ant-...
+    craft-cli run "Summarize this repo"
+
+    # Or pass the key inline
+    craft-cli run --provider anthropic --api-key $ANTHROPIC_API_KEY "Summarize this repo"
+    ```
+  </Tab>
+
+  <Tab title="OpenAI">
+    ```bash
+    craft-cli run \
+      --provider openai \
+      --model gpt-4o \
+      --api-key $OPENAI_API_KEY \
+      "Summarize this repo"
+    ```
+  </Tab>
+
+  <Tab title="Google Gemini">
+    ```bash
+    GOOGLE_API_KEY=AIza... craft-cli run \
+      --provider google \
+      --model gemini-2.0-flash \
+      "Hello, what can you do?"
+    ```
+  </Tab>
+
+  <Tab title="OpenRouter">
+    ```bash
+    # Route through OpenRouter using an Anthropic-compatible endpoint
+    craft-cli run \
+      --provider anthropic \
+      --base-url https://openrouter.ai/api/v1 \
+      --api-key $OR_KEY \
+      "Hello"
+    ```
+  </Tab>
+
+  <Tab title="Ollama (local)">
+    ```bash
+    # No API key required for local Ollama
+    craft-cli run \
+      --provider openai \
+      --base-url http://localhost:11434/v1 \
+      --model llama3.2 \
+      "Hello"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## With a Workspace Directory and Sources
+
+Point `run` at a local project directory and enable sources to give the agent broader context and capabilities:
+
+```bash
+craft-cli run \
+  --workspace-dir ./my-project \
+  --source github \
+  --mode ask \
+  "List all open issues assigned to me"
+```
+
+You can combine `--source` flags to enable multiple sources in a single run:
+
+```bash
+craft-cli run \
+  --workspace-dir . \
+  --source github \
+  --source linear \
+  "What's on my plate this week across GitHub and Linear?"
+```
+
+---
+
+## Piping Input via stdin
+
+You can pipe content directly into `run` — the piped text is prepended to, or used as, the prompt:
+
+```bash
+# Pipe a file and ask a question about it
+cat error.log | craft-cli run "What's causing these errors?"
+
+# Pipe a summary request
+echo "Summarize this file" | craft-cli run
+```
+
+---
+
+## Output Formats
+
+<Tabs>
+  <Tab title="text (default)">
+    Streams the AI response as plain text to stdout, with tool activity printed inline. This is the format to use when you're reading the output yourself.
+
+    ```bash
+    craft-cli run "List the top-level files in this directory"
+    ```
+
+    ```
+    Here are the top-level files:
+    [tool: bash]
+    - README.md
+    - package.json
+    - tsconfig.json
+    ...
+    ```
+  </Tab>
+
+  <Tab title="stream-json">
+    Emits newline-delimited JSON (NDJSON) — one event object per line. Use this when you want to parse or process the AI response programmatically.
+
+    ```bash
+    craft-cli run --output-format stream-json "Hello" | jq '.type'
+    ```
+
+    Each line is a JSON object with a `type` field (`text_delta`, `tool_start`, `tool_result`, `complete`, etc.) matching the [streaming event types](/reference/cli-commands#streamed-event-types) from the `send` command.
+  </Tab>
+</Tabs>
+
+---
+
+## Environment Variable Reference
+
+Instead of passing flags on every invocation, you can set environment variables. Flags always take precedence over their environment variable equivalents.
+
+| Environment Variable | Equivalent Flag | Description |
+|----------------------|-----------------|-------------|
+| `LLM_PROVIDER` | `--provider` | LLM provider name |
+| `LLM_MODEL` | `--model` | Model ID |
+| `LLM_API_KEY` | `--api-key` | API key (generic) |
+| `LLM_BASE_URL` | `--base-url` | Custom endpoint |
+| `ANTHROPIC_API_KEY` | — | Provider-specific key, checked automatically |
+| `OPENAI_API_KEY` | — | Provider-specific key, checked automatically |
+| `GOOGLE_API_KEY` | — | Provider-specific key, checked automatically |
+
+**Example `.env` setup for a project:**
+
+```bash
+export LLM_PROVIDER=openai
+export LLM_MODEL=gpt-4o
+export LLM_API_KEY=sk-...
+
+craft-cli run "Review the latest commit and write a changelog entry"
+```
+
+---
+
+## Debugging with --no-cleanup
+
+By default, `run` deletes the temporary session and shuts down the server when it finishes. Pass `--no-cleanup` to keep them alive so you can inspect the session state or replay the conversation.
+
+```bash
+craft-cli run --no-cleanup "Debug why the tests are failing"
+
+# The session and server remain running — you can connect to them
+craft-cli --url ws://127.0.0.1:9100 sessions
+```
+
+<Tip>
+  `--no-cleanup` is especially useful when the agent produces unexpected output and you want to look at the full message history with `craft-cli session messages <id>`.
+</Tip>

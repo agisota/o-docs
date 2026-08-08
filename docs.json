@@ -1,72 +1,102 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
-  "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+  "name": "Craft Agents",
+  "theme": "luma",
+  "favicon": "https://media.brand.dev/2be02d9b-676a-4182-825b-846023665284.png",
+  "logo": {
+    "light": "https://media.brand.dev/de96ded8-aa76-4225-b33f-2c2453885ae5.svg",
+    "dark": "https://media.brand.dev/de96ded8-aa76-4225-b33f-2c2453885ae5.svg"
   },
-  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#848484",
+    "light": "#151515",
+    "dark": "#d8d8d8"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Instrument Sans"
+    },
+    "body": {
+      "family": "Instrument Sans"
+    }
+  },
   "navigation": {
-    "pages": [
+    "tabs": [
       {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/sessions",
+              "concepts/workspaces",
+              "concepts/permission-modes",
+              "concepts/llm-connections"
+            ]
+          },
+          {
+            "group": "Sources",
+            "pages": [
+              "sources/overview",
+              "sources/mcp-sources",
+              "sources/api-sources",
+              "sources/local-sources"
+            ]
+          },
+          {
+            "group": "Skills & Automations",
+            "pages": [
+              "guides/skills",
+              "guides/automations"
+            ]
+          },
+          {
+            "group": "Remote & Headless",
+            "pages": [
+              "guides/remote-server",
+              "guides/docker",
+              "guides/cli"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "reference/cli-commands",
+              "reference/cli-run",
+              "reference/cli-scripting"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "reference/config-files",
+              "reference/automations-reference",
+              "reference/sources-reference",
+              "reference/environment-variables"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "reference/troubleshooting",
+              "reference/keyboard-shortcuts"
+            ]
+          }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
     ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
   }
 }

@@ -1,0 +1,113 @@
+---
+title: "Local Sources: Give Agents Access to Your Filesystem"
+sidebarTitle: "Local Sources"
+description: "Local sources connect Craft Agents to folders on your machine. Use path variables like ${WORKSPACE} to keep sources portable across machines."
+---
+
+Local sources give your agent direct access to a folder on your machine. Once configured, the agent can read files, search content, and — in Auto mode — write to that directory just as you would from a terminal. This is the simplest source type to set up: there is no remote server, no OAuth flow, and no API key. You point the source at a path and the agent does the rest.
+
+## config.json example
+
+```json
+{
+  "id": "obsidian_a1b2c3d4",
+  "name": "Obsidian Vault",
+  "slug": "obsidian",
+  "enabled": true,
+  "type": "local",
+  "icon": "📚",
+  "tagline": "Personal knowledge base",
+  "local": {
+    "path": "~/Documents/ObsidianVault"
+  }
+}
+```
+
+The `local.path` field is the only required field inside the `local` block. It can be an absolute path or any of the supported path variables described below.
+
+## Path variables
+
+Absolute paths break when you move to a new machine or work across multiple devices. Path variables are expanded automatically at load time, making your source configs portable without any manual editing.
+
+| Variable | Resolves to | Example |
+|----------|-------------|---------|
+| `~` | Home directory | `~/Documents/MyProject` |
+| `${HOME}` | Home directory | `${HOME}/Documents/MyProject` |
+| `${CRAFT_CONFIG_DIR}` | Craft Agent config dir (default: `~/.craft-agent`) | `${CRAFT_CONFIG_DIR}/reference-files` |
+| `${WORKSPACE}` | Current workspace root | `${WORKSPACE}/docs` |
+| `${SOURCE_DIR}` | This source's own folder | `${SOURCE_DIR}/data` |
+
+A portable local source that works on any machine without changes:
+
+```json
+{
+  "type": "local",
+  "local": {
+    "path": "~/Documents/ObsidianVault"
+  }
+}
+```
+
+A source that points at a subfolder within the active workspace — useful for giving the agent focused access to a specific part of a project:
+
+```json
+{
+  "type": "local",
+  "local": {
+    "path": "${WORKSPACE}/reference"
+  }
+}
+```
+
+<Note>
+Existing configs with hardcoded absolute paths continue to work exactly as before. Variables are opt-in — a path without `${...}` or `~` passes through unchanged.
+</Note>
+
+## Explore mode permissions
+
+In Explore mode the agent is restricted to read-only operations by default. You can define exactly which shell commands are allowed by creating a `permissions.json` in the source folder:
+
+```json
+{
+  "allowedBashPatterns": [
+    { "pattern": "^(ls|cat|head|tail|grep|find|tree)\\s", "comment": "Read-only file commands" }
+  ]
+}
+```
+
+Patterns are matched as regular expressions against the full bash command string. The example above allows standard read-only commands (`ls`, `cat`, `head`, `tail`, `grep`, `find`, `tree`) while blocking anything that could modify files.
+
+<Tip>
+Match your `permissions.json` to the operations you actually need in Explore mode. A vault used only for searching notes might allow `grep` and `find` but not `cat` on large files.
+</Tip>
+
+## Use cases
+
+<CardGroup cols={2}>
+  <Card title="Obsidian vault" icon="book">
+    Give the agent read access to your personal knowledge base. Ask it to find notes, summarise recent entries, or cross-reference ideas across your vault.
+  </Card>
+  <Card title="Project directory" icon="folder-tree">
+    Point a local source at a code repository or project folder. The agent can read source files, documentation, and configs to answer questions in context.
+  </Card>
+  <Card title="Shared reference folder" icon="users">
+    Keep team reference materials — API docs, brand guidelines, runbooks — in a shared folder and give the agent access. Every session can consult the same up-to-date files.
+  </Card>
+  <Card title="Exported data" icon="database">
+    Connect the agent to a folder of CSV exports, JSON dumps, or downloaded reports. Ask it to analyse, summarise, or transform the data without uploading anything to a remote service.
+  </Card>
+</CardGroup>
+
+## Validating the source
+
+After creating `config.json`, the agent runs `source_test` to confirm the path exists and is accessible. If the path doesn't exist yet, `source_test` will report an error — create the directory first, then re-run the test.
+
+```
+source_test({ sourceSlug: "obsidian" })
+```
+
+Unlike MCP and API sources, local sources have no authentication step. Once the path validates, the source is ready to use.
+
+<Warning>
+Be careful when pointing a local source at sensitive directories — your home folder root, a directory containing SSH keys, or a folder with stored credentials — and using Auto mode. In Auto mode the agent can read and write files without asking for approval. Use Explore mode or Ask to Edit mode for sensitive locations, and configure `permissions.json` to restrict the agent to read-only commands.
+</Warning>

@@ -1,0 +1,255 @@
+---
+title: "Craft Agents Configuration Files Reference"
+sidebarTitle: "Config Files"
+description: "Reference for all Craft Agents configuration files: global config, workspace config, preferences, themes, and the directory structure under ~/.craft-agent."
+---
+
+Craft Agents stores all of its configuration, session data, and encrypted credentials under a single directory on your local machine: `~/.craft-agent`. Understanding this layout lets you back up your settings, share workspace configurations across machines, or manually inspect and edit files when you need fine-grained control. This reference covers every file and folder in that directory tree, when it is safe to edit, and what each top-level field means.
+
+## Directory structure
+
+```
+~/.craft-agent/
+├── config.json              # Global: workspace registry + LLM connections
+├── credentials.enc          # AES-256-GCM encrypted credentials (never edit directly)
+├── preferences.json         # User preferences (UI settings)
+├── theme.json               # App-level theme
+└── workspaces/
+    └── {id}/
+        ├── config.json      # Workspace settings + enabled sources/skills
+        ├── theme.json       # Workspace-level theme override
+        ├── automations.json # Event-driven automations (version 2)
+        ├── sessions/        # Session data (JSONL files)
+        ├── sources/         # Connected sources (one folder per source)
+        │   └── {slug}/
+        │       ├── config.json
+        │       ├── guide.md
+        │       ├── permissions.json
+        │       └── icon.*
+        ├── skills/          # Custom skills (SKILL.md files)
+        └── statuses/        # Workflow status configuration
+```
+
+## File overview
+
+| File / Path | Purpose | Safe to edit manually? |
+|---|---|---|
+| `config.json` | Workspace registry and LLM provider connections | Yes |
+| `credentials.enc` | AES-256-GCM encrypted credentials for all sources and LLM keys | **No — binary encrypted file** |
+| `preferences.json` | UI preferences such as sidebar width and notification settings | Yes |
+| `theme.json` (root) | App-wide visual theme applied to every workspace | Yes |
+| `workspaces/{id}/config.json` | Per-workspace settings: name, enabled sources, active skills, permission defaults | Yes |
+| `workspaces/{id}/theme.json` | Workspace-level theme that overrides the app-level `theme.json` | Yes |
+| `workspaces/{id}/automations.json` | Event-driven automation rules for the workspace | Yes |
+| `workspaces/{id}/sessions/` | JSONL files storing conversation history (one file per session) | Read-only recommended |
+| `workspaces/{id}/sources/{slug}/` | Source configuration, usage guide, permissions, and cached icon | Yes |
+| `workspaces/{id}/skills/` | Markdown files that define custom agent skills | Yes |
+| `workspaces/{id}/statuses/` | Custom session status workflow definitions | Yes |
+
+<Warning>
+  Never open or modify `credentials.enc` in a text editor. The file is
+  encrypted with AES-256-GCM and any change — even adding a trailing newline —
+  will corrupt the credential store. Use the in-app settings or the agent
+  itself to manage credentials.
+</Warning>
+
+---
+
+## Global `config.json`
+
+The root `config.json` is loaded at startup and controls which workspaces exist and how Craft Agents connects to LLM providers.
+
+```json
+{
+  "version": 1,
+  "workspaces": [
+    {
+      "id": "ws_01a2b3c4d5",
+      "name": "Personal",
+      "path": "~/.craft-agent/workspaces/ws_01a2b3c4d5"
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn_anthropic_01",
+      "slug": "my-anthropic",
+      "name": "Anthropic (Personal)",
+      "provider": "anthropic",
+      "authType": "api-key",
+      "model": "claude-opus-4-5-20250929"
+    },
+    {
+      "id": "conn_openai_01",
+      "slug": "openai-gpt4o",
+      "name": "OpenAI GPT-4o",
+      "provider": "openai",
+      "authType": "api-key",
+      "model": "gpt-4o"
+    }
+  ],
+  "defaultConnectionId": "conn_anthropic_01"
+}
+```
+
+### Top-level fields
+
+<ParamField path="version" type="number" required>
+  Schema version. Currently `1`. Do not change this manually.
+</ParamField>
+
+<ParamField path="workspaces" type="array" required>
+  Ordered list of workspace registrations. Each entry contains an `id`, display
+  `name`, and absolute `path` to the workspace directory. The app reads this list
+  at startup to populate the workspace switcher.
+</ParamField>
+
+<ParamField path="connections" type="array">
+  All configured LLM provider connections. Each entry includes:
+
+  - `id` — unique identifier string
+  - `slug` — URL-safe identifier used in automations
+  - `name` — human-readable display name
+  - `provider` — provider key: `anthropic`, `openai`, `google`, `openrouter`, `groq`, `mistral`, `xai`, etc.
+  - `authType` — `api-key`, `oauth`, or `codex-oauth`
+  - `model` — default model ID for this connection
+  - `baseUrl` _(optional)_ — custom endpoint for proxies or self-hosted models
+
+  Credentials (API keys, tokens) are **not** stored here; they live in `credentials.enc`.
+</ParamField>
+
+<ParamField path="defaultConnectionId" type="string">
+  The `id` of the connection used when no workspace-level default is set.
+</ParamField>
+
+---
+
+## Workspace `config.json`
+
+Each workspace has its own `config.json` at `workspaces/{id}/config.json`. This file controls workspace-specific behaviour including which sources and skills are active.
+
+```json
+{
+  "id": "ws_01a2b3c4d5",
+  "name": "Personal",
+  "defaultConnectionId": "conn_anthropic_01",
+  "defaultModel": "claude-opus-4-5-20250929",
+  "defaultPermissionMode": "ask",
+  "enabledSources": ["linear", "github", "filesystem"],
+  "enabledSkills": ["code-review", "daily-standup"],
+  "createdAt": 1704067200000,
+  "updatedAt": 1704153600000
+}
+```
+
+### Top-level fields
+
+<ParamField path="id" type="string" required>
+  Workspace identifier. Must match the folder name under `workspaces/`.
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  Display name shown in the workspace switcher.
+</ParamField>
+
+<ParamField path="defaultConnectionId" type="string">
+  Overrides the global `defaultConnectionId` for sessions in this workspace.
+  Set to `null` to fall back to the global default.
+</ParamField>
+
+<ParamField path="defaultModel" type="string">
+  Default model ID for new sessions. Overrides the model set on the connection.
+</ParamField>
+
+<ParamField path="defaultPermissionMode" type="string">
+  Starting permission mode for new sessions. One of:
+  - `safe` — Explore (read-only, blocks all write operations)
+  - `ask` — Ask to Edit (prompts before any write; **default**)
+  - `allow-all` — Auto (approves all operations automatically)
+</ParamField>
+
+<ParamField path="enabledSources" type="array">
+  Slugs of sources that are active in this workspace. Only sources listed here
+  are available to sessions via `@mentions`.
+</ParamField>
+
+<ParamField path="enabledSkills" type="array">
+  Slugs of skill files from the `skills/` folder that are injected into the
+  system prompt for every session in this workspace.
+</ParamField>
+
+---
+
+## `preferences.json`
+
+Stores user-facing UI preferences. Craft Agents writes to this file automatically when you change settings in the app. You can edit it manually to batch-apply preferences or sync them across machines.
+
+```json
+{
+  "sidebarWidth": 260,
+  "theme": "system",
+  "notifications": {
+    "sessionComplete": true,
+    "labelChange": false
+  },
+  "editor": {
+    "fontSize": 14,
+    "wordWrap": true
+  },
+  "sessionList": {
+    "defaultView": "inbox",
+    "groupByStatus": true
+  }
+}
+```
+
+<Tip>
+  Copy `preferences.json` to a new machine to instantly replicate your UI
+  setup. Unlike `credentials.enc`, this file contains no sensitive data.
+</Tip>
+
+Common fields you may want to tune:
+
+| Key | Type | Description |
+|---|---|---|
+| `sidebarWidth` | `number` | Sidebar width in pixels |
+| `theme` | `"system"` \| `"light"` \| `"dark"` | Color scheme preference |
+| `notifications.sessionComplete` | `boolean` | Desktop notification when a session finishes |
+| `editor.fontSize` | `number` | Font size in the chat editor |
+| `sessionList.defaultView` | `"inbox"` \| `"archive"` \| `"all"` | Default session list shown on launch |
+
+---
+
+## Theme system
+
+Craft Agents uses a cascading theme system with two levels:
+
+1. **App-level** — `~/.craft-agent/theme.json` applies to every workspace.
+2. **Workspace-level** — `~/.craft-agent/workspaces/{id}/theme.json` overrides the app-level theme for that workspace only.
+
+If a workspace `theme.json` is absent, the app falls back to the root `theme.json`. Only the fields present in the workspace file override the corresponding app-level values — unspecified fields inherit from the app theme.
+
+```json
+{
+  "accentColor": "#6C63FF",
+  "fontFamily": "Inter",
+  "borderRadius": "8px",
+  "sessionListBackground": "#F5F5F7",
+  "chatBackground": "#FFFFFF"
+}
+```
+
+<Note>
+  Theme files support the same key set at both levels. You can maintain a
+  base palette in the root `theme.json` and only put workspace-specific
+  accent colours in the workspace-level file.
+</Note>
+
+Common theme keys:
+
+| Key | Description |
+|---|---|
+| `accentColor` | Primary accent color (hex or CSS color) |
+| `fontFamily` | UI font family name |
+| `borderRadius` | Corner radius applied to cards and inputs |
+| `sessionListBackground` | Background color of the session list panel |
+| `chatBackground` | Background color of the chat area |

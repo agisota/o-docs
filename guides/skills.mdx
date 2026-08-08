@@ -1,0 +1,137 @@
+---
+title: "Skills: Reusable Agent Instructions for Your Workspace"
+sidebarTitle: "Skills"
+description: "Skills are reusable instruction bundles that give your agent specialised knowledge. Create custom skills or import from the built-in library."
+---
+
+Skills package specialised instructions into reusable bundles that you can invoke any time — in any session, mid-conversation, or automatically when matching files are open. Each skill is a single `SKILL.md` file written in the same format used by the Claude Code SDK, so any skill you already have from Claude Code works in Craft Agents without modification.
+
+## What is a skill?
+
+A skill is a Markdown file that tells your agent how to behave for a specific task or domain. When you invoke a skill, its instructions are injected into the agent's context before it responds. You can think of a skill as a reusable system prompt scoped to one focused job — writing conventional commits, running a code review, triaging bugs, and so on.
+
+Skills live on disk as `SKILL.md` files, grouped into named folders:
+
+```
+~/.craft-agent/workspaces/{workspaceId}/skills/{slug}/
+├── SKILL.md      # Required — skill definition
+├── icon.svg      # Recommended — displayed in the UI
+└── ...           # Optional supporting files
+```
+
+Because each skill is a plain Markdown file, you can version them in Git, share them with teammates, or edit them directly in any text editor.
+
+<Note>
+  Workspace skills take precedence over built-in SDK skills. Create a skill with the same slug as a built-in (e.g., `commit`) to override it workspace-wide.
+</Note>
+
+## Invoking a skill
+
+Type `/skill-name` anywhere in your message to invoke a skill by its slug:
+
+```
+/review-pr Check the latest diff for breaking changes
+```
+
+You can also reference a skill inline with `@skill-name`:
+
+```
+Run the @weather skill and give me today's forecast
+```
+
+If no workspace skill matches the slug, Craft Agents falls back to the built-in SDK skill of the same name.
+
+## Built-in skill packs
+
+Craft Agents ships curated skill packs you can install from **Settings → Skills → Browse Packs**. Each pack groups related skills around a theme.
+
+<CardGroup cols={3}>
+  <Card title="Matt Pocock Skills" icon="code">
+    Practical skills for everyday TypeScript and JavaScript development.
+
+    `tdd` · `code-review` · `codebase-design` · `prototype` · `implement` · `research` · `diagnose-bugs` · `teach`
+  </Card>
+  <Card title="Vercel Agent Skills" icon="triangle">
+    Deployment and frontend best-practice skills tuned for Vercel projects.
+
+    `deploy-to-vercel` · `react-best-practices` · `vercel-optimize`
+  </Card>
+  <Card title="Superpowers" icon="bolt">
+    Advanced agentic patterns for complex, multi-step work.
+
+    `dispatching-parallel-agents` · `test-driven-development` · `systematic-debugging`
+  </Card>
+</CardGroup>
+
+## Creating a custom skill
+
+<Steps>
+  <Step title="Open Skills settings">
+    Go to **Settings → Skills** and click **New Skill**.
+  </Step>
+  <Step title="Name your skill">
+    Enter a slug (lowercase letters, numbers, and hyphens — e.g., `review-pr`). The slug becomes the `/command` you type to invoke it.
+  </Step>
+  <Step title="Write the instructions">
+    Add a name, description, and the Markdown body that tells the agent exactly how to behave. See the format reference below.
+  </Step>
+  <Step title="Save and validate">
+    Click **Save**. Craft Agents validates the file automatically and reports any errors inline.
+  </Step>
+</Steps>
+
+You can also ask the agent directly:
+
+```
+Create a skill called review-pr that reviews pull requests for breaking changes,
+test coverage, and security issues — and always ends with a summary comment.
+```
+
+The agent creates the `SKILL.md` file and validates it for you.
+
+### SKILL.md format
+
+```markdown
+---
+name: "review-pr"
+description: "Review pull requests for quality, safety, and coverage"
+globs: ["*.ts", "*.tsx"]
+alwaysAllow: ["Bash"]
+---
+
+# review-pr
+
+Review pull requests with these guidelines:
+- Check for breaking changes
+- Verify test coverage
+- Look for security issues
+
+Always provide a summary comment and line-by-line feedback.
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | ✅ | Display name shown in the skill list |
+| `description` | ✅ | One-sentence description of what the skill does |
+| `globs` | — | File patterns that automatically suggest this skill |
+| `alwaysAllow` | — | Tool names approved without prompting when the skill is active |
+| `requiredSources` | — | Source slugs (e.g., `linear`, `github`) auto-enabled on invocation |
+
+The Markdown body after the frontmatter contains the actual instructions the agent receives. Be specific and include examples — the more precise your instructions, the more reliably the agent follows them.
+
+## Importing skills from Claude Code
+
+Because Craft Agents uses the same `SKILL.md` format as the Claude Code SDK, migration is seamless:
+
+<Steps>
+  <Step title="Tell the agent">
+    Open a session and say: **"Import my skills from Claude Code."** The agent locates your existing skill files and copies them into the current workspace.
+  </Step>
+  <Step title="Drag and drop">
+    Alternatively, drag a `SKILL.md` file or a `.clauderules` file directly into **Settings → Skills**. Craft Agents parses it and creates the skill automatically.
+  </Step>
+</Steps>
+
+<Tip>
+  Skills are workspace-specific. Build a focused skill set for each project — a backend API workspace can have `openapi-spec` and `db-migrations` skills, while a frontend workspace uses `react-best-practices` and `design-tokens`. Switch workspaces to switch skill contexts instantly.
+</Tip>

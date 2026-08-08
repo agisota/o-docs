@@ -1,0 +1,368 @@
+---
+title: "Sources Configuration Schema Reference"
+sidebarTitle: "Sources"
+description: "Complete reference for sources config.json, permissions.json, path variables, and testEndpoint rules for MCP, API, and local source types."
+---
+
+Sources connect Craft Agents to the outside world — MCP servers, REST APIs, and local filesystems all become tools that you and your agents can call. Each source lives in its own folder under `~/.craft-agent/workspaces/{id}/sources/{slug}/` and is described by a `config.json`. This reference documents every field in that file, the companion `permissions.json`, supported path variables for cross-machine portability, and the rules around `testEndpoint` URL formatting.
+
+---
+
+## Source folder layout
+
+```
+sources/
+└── {slug}/
+    ├── config.json       # Required: source configuration
+    ├── guide.md          # Optional: usage notes injected into agent context
+    ├── permissions.json  # Optional: Explore-mode permission rules
+    └── icon.*            # Optional: cached icon (svg, png, jpg, or jpeg)
+```
+
+---
+
+## `config.json` — top-level fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | `string` | **Yes** | Unique identifier. Convention: `{slug}_{8-hex-chars}` (e.g., `linear_a1b2c3d4`). |
+| `name` | `string` | **Yes** | Human-readable display name shown in the UI. |
+| `slug` | `string` | **Yes** | URL-safe identifier used in `@mentions` and `enabledSources` lists. |
+| `enabled` | `boolean` | **Yes** | Whether the source is active. Set to `false` to disable without deleting. |
+| `provider` | `string` | **Yes** | Provider key (e.g., `linear`, `github`, `openai`). Used for favicon resolution. |
+| `type` | `string` | **Yes** | Source type: `"mcp"`, `"api"`, or `"local"`. |
+| `icon` | `string` | No | Emoji (e.g., `"🔧"`) or URL to download. `source_test` downloads URLs and caches a local file. |
+| `tagline` | `string` | No | Short description injected into agent context (e.g., `"Issue tracking and sprint planning"`). |
+| `connectionStatus` | `string` | No | Set by `source_test`. See [Connection status values](#connection-status-values). |
+| `lastTestedAt` | `number` | No | Unix timestamp (ms) of the last successful `source_test` run. |
+| `isAuthenticated` | `boolean` | No | Set by `source_test` after credentials are verified. |
+| `createdAt` | `number` | No | Unix timestamp (ms) when the source was created. |
+| `updatedAt` | `number` | No | Unix timestamp (ms) of the last config update. |
+
+Exactly one of `mcp`, `api`, or `local` must also be present, matching the value of `type`.
+
+### Connection status values
+
+| Value | Meaning |
+|---|---|
+| `connected` | Source is reachable and credentials are valid. |
+| `needs_auth` | Source is configured but credentials are missing or expired. |
+| `failed` | Last connectivity check failed. See `connectionError` in the file for details. |
+| `untested` | `source_test` has never been run for this source. |
+
+---
+
+## MCP config block
+
+Use the `mcp` block when `type` is `"mcp"`. MCP sources expose tools via the Model Context Protocol.
+
+### HTTP transport (remote MCP server)
+
+```json
+{
+  "type": "mcp",
+  "mcp": {
+    "url": "https://mcp.linear.app",
+    "authType": "oauth"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `url` | `string` | **Yes** | HTTP/HTTPS URL of the MCP server. |
+| `authType` | `string` | **Yes** | `"oauth"`, `"bearer"`, or `"none"`. |
+
+### stdio transport (local command)
+
+```json
+{
+  "type": "mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+    "env": {
+      "BRAVE_API_KEY": "your-api-key"
+    },
+    "authType": "none"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `transport` | `"stdio"` | **Yes** | Must be `"stdio"` to use local subprocess mode. |
+| `command` | `string` | **Yes** | Executable to run (e.g., `npx`, `python`, `node`). Supports [path variables](#path-variables). |
+| `args` | `string[]` | No | Arguments passed to the command. Each string supports path variables. |
+| `env` | `object` | No | Environment variables passed to the subprocess. Values support path variables. |
+| `authType` | `string` | **Yes** | Typically `"none"` for local servers. |
+| `platform` | `object` | No | Per-platform overrides for `command`, `args`, and `env`. See [Platform overrides](#platform-overrides). |
+
+<Warning>
+  Sensitive host environment variables are automatically filtered from MCP
+  subprocess environments to prevent credential leakage. See the
+  [Environment Variables](/reference/environment-variables) reference for the
+  full list of blocked variables. To explicitly pass a variable to an MCP
+  server, add it to the `env` field.
+</Warning>
+
+---
+
+## API config block
+
+Use the `api` block when `type` is `"api"`. API sources let the agent call REST endpoints using structured tool calls.
+
+```json
+{
+  "type": "api",
+  "api": {
+    "baseUrl": "https://api.example.com/v1/",
+    "authType": "bearer",
+    "testEndpoint": {
+      "method": "GET",
+      "path": "me"
+    }
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `baseUrl` | `string` | **Yes** | Base URL for all requests. **Must end with a trailing slash.** |
+| `authType` | `string` | **Yes** | Authentication method. See values below. |
+| `headerName` | `string` | No | Single header name for `authType: "header"` (e.g., `X-API-Key`). |
+| `headerNames` | `string[]` | No | Multiple header names when two or more auth headers are required (e.g., Datadog `DD-API-KEY` + `DD-APPLICATION-KEY`). Use instead of `headerName`. |
+| `queryParam` | `string` | No | Query parameter name for `authType: "query"` (e.g., `apikey`). |
+| `authScheme` | `string` | No | Authorization scheme prefix for `authType: "bearer"`. Defaults to `"Bearer"`. |
+| `oauth` | `object` | No | Explicit OAuth endpoints and client credentials. Required for non-discoverable OAuth providers. |
+| `renewEndpoint` | `object` | No | Configures automatic token renewal for non-OAuth bearer APIs. |
+| `testEndpoint` | `object` | Recommended | Endpoint called by `source_test` to verify credentials. Required for all authenticated API sources. |
+
+### `authType` values
+
+| Value | How credentials are sent |
+|---|---|
+| `bearer` | `Authorization: Bearer <token>` |
+| `header` | Custom header(s) set via `headerName` or `headerNames` |
+| `query` | Credential appended as a query parameter (`?{queryParam}=...`) |
+| `basic` | HTTP Basic Auth (`Authorization: Basic base64(user:pass)`) |
+| `oauth` | OAuth 2.0 — tokens sent as `Authorization: Bearer <token>` |
+| `none` | No authentication header added |
+
+### `oauth` block fields
+
+Provide the `oauth` block only when the server does not support RFC 9728 OAuth auto-discovery.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `authorizationUrl` | `string` | **Yes** | OAuth authorization endpoint. |
+| `tokenUrl` | `string` | **Yes** | OAuth token exchange endpoint. |
+| `clientId` | `string` | **Yes** | Your OAuth application's client ID. |
+| `clientSecret` | `string` | No | Client secret (omit for public PKCE clients). |
+| `scopes` | `string[]` | No | Requested OAuth scopes. |
+| `audience` | `string` | No | Auth0-style audience parameter. |
+| `extraParams` | `object` | No | Additional query parameters for the authorization URL (e.g., `{"access_type": "offline"}`). |
+
+### `renewEndpoint` block fields
+
+The optional `renewEndpoint` enables automatic token renewal for non-OAuth bearer APIs.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `path` | `string` | **Yes** | — | Relative path (resolved against `baseUrl`) or absolute URL. |
+| `method` | `string` | No | `"POST"` | HTTP method: `"GET"` or `"POST"`. |
+| `body` | `object` | No | — | Request body JSON. Use `{{token}}` as a placeholder for the current access token. |
+| `headers` | `object` | No | — | Extra headers. Use `{{token}}` as placeholder. Merged on top of default headers. |
+| `tokenField` | `string` | No | `"access_token"` | Response JSON field containing the new token. |
+| `expiresInField` | `string` | No | `"expires_in"` | Response JSON field containing expiry in seconds. |
+| `fallbackTtlSecs` | `number` | No | — | TTL in seconds when the response omits expiry information. |
+
+---
+
+## `testEndpoint` rules
+
+The `testEndpoint` tells `source_test` which endpoint to call to verify your credentials. It is required for all authenticated API sources.
+
+```json
+{
+  "testEndpoint": {
+    "method": "GET",
+    "path": "v1/me",
+    "body": { "optional": "for POST only" }
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `method` | `"GET"` \| `"POST"` | **Yes** | HTTP method. |
+| `path` | `string` | **Yes** | Path relative to `baseUrl`. **Must not start with a leading slash.** |
+| `body` | `object` | No | Request body, used only for `POST`. |
+
+<Warning>
+  **URL formatting rules — these are a common source of errors:**
+  - `baseUrl` **must** have a trailing slash: `https://api.example.com/v1/` ✅
+  - `testEndpoint.path` **must not** have a leading slash: `me` ✅, `/me` ❌
+
+  If either rule is violated, `source_test` will construct a malformed URL and
+  the connection check will fail.
+</Warning>
+
+**Good endpoint choices:**
+- `me`, `user`, `profile` — lightweight user identity endpoints
+- `health`, `status` — service health endpoints that require auth
+- `models`, `projects` — minimal list endpoints
+
+Public APIs (`authType: "none"`) do not require a `testEndpoint`. The tool tests connectivity by hitting `baseUrl` directly.
+
+---
+
+## Local config block
+
+Use the `local` block when `type` is `"local"`. Local sources give the agent filesystem access to a folder on disk.
+
+```json
+{
+  "type": "local",
+  "local": {
+    "path": "~/Documents/ObsidianVault"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `path` | `string` | **Yes** | Absolute or `~`-relative path to the folder. Supports [path variables](#path-variables). |
+
+---
+
+## Path variables
+
+Path variables are expanded automatically when a source is loaded, making configs portable across machines without manual editing.
+
+| Variable | Resolves to | Example |
+|---|---|---|
+| `~` or `~/` | Home directory | `~/Development/my-mcp` |
+| `${HOME}` | Home directory | `${HOME}/.crawl4ai/venv/bin/python` |
+| `${CRAFT_CONFIG_DIR}` | Craft Agents config directory (default: `~/.craft-agent`) | `${CRAFT_CONFIG_DIR}/sources/my-mcp` |
+| `${WORKSPACE}` | Current workspace root directory | `${WORKSPACE}/mcp-servers/my-server` |
+| `${SOURCE_DIR}` | This source's own folder | `${SOURCE_DIR}/server/index.js` |
+
+### Where variables are expanded
+
+| Source type | Expanded fields |
+|---|---|
+| MCP stdio | `command`, each `args` string, each `env` value |
+| Local | `path` |
+
+Existing configs with absolute paths (no variables) continue to work without changes. Variables are opt-in.
+
+---
+
+## Platform overrides
+
+For MCP stdio sources, you can override `command`, `args`, and `env` per operating system using the `platform` key. Keys match Node.js `process.platform` values: `win32`, `darwin`, `linux`.
+
+```json
+{
+  "type": "mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+    "platform": {
+      "win32": {
+        "command": "npx.cmd"
+      }
+    }
+  }
+}
+```
+
+**Override rules:**
+- `command` — **replaces** the default command entirely.
+- `args` — **replaces** the entire default args array.
+- `env` — **merges** on top of the default `env` (individual keys are overridden, not the whole object).
+
+Path variables are expanded inside platform overrides using the same rules as default fields.
+
+**Example — platform-specific paths:**
+
+```json
+{
+  "type": "mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "dart",
+    "args": ["${SOURCE_DIR}/server/main.dart"],
+    "env": { "DART_SDK": "${HOME}/.dart-sdk" },
+    "platform": {
+      "win32": {
+        "command": "dart.exe",
+        "env": { "DART_SDK": "C:\\tools\\dart-sdk" }
+      },
+      "darwin": {
+        "env": { "DART_SDK": "/opt/homebrew/opt/dart" }
+      }
+    }
+  }
+}
+```
+
+---
+
+## `permissions.json` schema
+
+The optional `permissions.json` file extends what operations are permitted in **Explore mode** (`permissionMode: "safe"`) for this source. Patterns are automatically scoped to the source — you write simple patterns and the system prefixes them with `mcp__{sourceSlug}__` internally.
+
+```json
+{
+  "allowedMcpPatterns": [
+    { "pattern": "list", "comment": "All list operations" },
+    { "pattern": "get",  "comment": "All get/read operations" },
+    { "pattern": "search", "comment": "All search operations" }
+  ],
+  "allowedApiEndpoints": [
+    { "method": "GET",  "path": ".*",     "comment": "All GET requests are read-only" },
+    { "method": "POST", "path": "^/search", "comment": "Search endpoint (read-only despite POST)" }
+  ],
+  "allowedBashPatterns": [
+    { "pattern": "^(ls|cat|head|tail|grep|find|tree)\\s", "comment": "Read-only commands" }
+  ]
+}
+```
+
+### `allowedMcpPatterns`
+
+Each entry allows one or more MCP tool calls in Explore mode.
+
+| Field | Type | Description |
+|---|---|---|
+| `pattern` | `string` | Regex matched against the tool name (scoped to this source). |
+| `comment` | `string` | Human-readable explanation (not evaluated). |
+
+### `allowedApiEndpoints`
+
+Each entry allows specific HTTP calls in Explore mode.
+
+| Field | Type | Description |
+|---|---|---|
+| `method` | `string` | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`. |
+| `path` | `string` | Regex matched against the request path. |
+| `comment` | `string` | Human-readable explanation (not evaluated). |
+
+### `allowedBashPatterns`
+
+Each entry allows specific shell commands in Explore mode (relevant for local sources).
+
+| Field | Type | Description |
+|---|---|---|
+| `pattern` | `string` | Regex matched against the full shell command string. |
+| `comment` | `string` | Human-readable explanation (not evaluated). |
+
+<Tip>
+  Aim to allow all read operations (list, get, search, query, all GET
+  requests) in `permissions.json` so sources are fully functional in Explore
+  mode. Only block actual mutation operations (create, update, delete).
+</Tip>

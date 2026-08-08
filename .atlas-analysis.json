@@ -1,0 +1,120 @@
+{
+  "projectType": "saas",
+  "projectName": "Craft Agents",
+  "projectDescription": "A desktop-first AI agent application that lets you manage multiple concurrent AI coding and research sessions with a polished multi-session inbox, deep integrations, and customizable automation.",
+  "theme": "luma",
+  "primaryColor": "#848484",
+  "lightColor": "#151515",
+  "darkColor": "#d8d8d8",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/sessions",
+              "concepts/workspaces",
+              "concepts/permission-modes",
+              "concepts/llm-connections"
+            ]
+          },
+          {
+            "group": "Sources",
+            "pages": [
+              "sources/overview",
+              "sources/mcp-sources",
+              "sources/api-sources",
+              "sources/local-sources"
+            ]
+          },
+          {
+            "group": "Skills & Automations",
+            "pages": [
+              "guides/skills",
+              "guides/automations"
+            ]
+          },
+          {
+            "group": "Remote & Headless",
+            "pages": [
+              "guides/remote-server",
+              "guides/docker",
+              "guides/cli"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "reference/cli-commands",
+              "reference/cli-run",
+              "reference/cli-scripting"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "reference/config-files",
+              "reference/automations-reference",
+              "reference/sources-reference",
+              "reference/environment-variables"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "reference/troubleshooting",
+              "reference/keyboard-shortcuts"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-session inbox with Kanban-style workflow (Todo → In Progress → Needs Review → Done)",
+    "Claude Agent SDK + Pi SDK dual-backend for Anthropic, Google, OpenAI, Copilot, and custom providers",
+    "Sources: zero-config integrations with MCP servers, REST APIs (Google, Slack, Microsoft, GitHub), and local filesystems",
+    "Skills: reusable per-workspace agent instruction bundles invokable via slash commands",
+    "Automations: event-driven workflows triggered by labels, cron schedules, status changes, and agent tool events",
+    "Three permission modes: Explore (read-only), Ask to Edit, Auto",
+    "Headless/remote server mode: run sessions on a VPS and connect the desktop app as a thin client",
+    "VS Code-style multi-file diff viewer with real-time streaming",
+    "File attachments: drag-and-drop images, PDFs, Office docs with auto-conversion",
+    "Background tasks with progress tracking for long-running operations"
+  ],
+  "publicApiSurface": [
+    "CLI: craft-cli run <prompt>",
+    "CLI: craft-cli send <session-id> <message>",
+    "CLI: craft-cli session create/delete/messages",
+    "CLI: craft-cli ping / health / versions / workspaces / sessions / connections / sources",
+    "CLI: craft-cli invoke <channel> [args]",
+    "CLI: craft-cli listen <channel>",
+    "CLI: craft-cli --validate-server",
+    "WebSocket RPC: sessions:create, sessions:sendMessage, sessions:cancel, sessions:delete",
+    "WebSocket RPC: workspaces:get, workspaces:create",
+    "WebSocket RPC: sources:get, sources:create, sources:update, sources:delete",
+    "WebSocket RPC: skills:get, skills:create, skills:update, skills:delete",
+    "WebSocket RPC: automations:get, automations:setEnabled",
+    "WebSocket RPC: LLM_Connection:list, LLM_Connection:create",
+    "WebSocket RPC: credentials:healthCheck",
+    "WebSocket RPC: system:versions, system:homeDir",
+    "Server env: CRAFT_SERVER_TOKEN, CRAFT_RPC_HOST, CRAFT_RPC_PORT, CRAFT_RPC_TLS_CERT, CRAFT_RPC_TLS_KEY",
+    "Automations config: automations.json (version 2 schema)",
+    "Sources config: sources/{slug}/config.json, permissions.json, guide.md"
+  ]
+}

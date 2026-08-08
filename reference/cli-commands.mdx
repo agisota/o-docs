@@ -1,0 +1,349 @@
+---
+title: "craft-cli Command Reference"
+sidebarTitle: "Commands"
+description: "Full reference for all craft-cli commands: ping, health, sessions, send, invoke, listen, and more. Includes connection flags and output options."
+---
+
+`craft-cli` is the terminal client for Craft Agents. It connects over WebSocket (`ws://` or `wss://`) to a running Craft Agents server — either a local headless instance or a remote server — and lets you manage sessions, send messages, stream AI responses, and automate workflows entirely from the command line.
+
+## Prerequisites
+
+- [Bun](https://bun.sh/) runtime installed
+- A running Craft Agents server with its URL and auth token (for most commands)
+- An LLM API key (for `run` and `--validate-server` only)
+
+## Connection Flags
+
+These flags apply to every command. You can set the most-used ones as environment variables so you don't need to repeat them on each invocation.
+
+<Note>
+  Flags always take precedence over their environment variable equivalents. If `--workspace` is omitted, the CLI auto-detects the first available workspace.
+</Note>
+
+| Flag | Env Var | Default | Description |
+|------|---------|---------|-------------|
+| `--url <ws[s]://...>` | `CRAFT_SERVER_URL` | — | Server WebSocket URL |
+| `--token <secret>` | `CRAFT_SERVER_TOKEN` | — | Authentication token |
+| `--workspace <id>` | — | auto-detect | Workspace ID to target |
+| `--timeout <ms>` | — | `10000` | Request timeout in milliseconds |
+| `--tls-ca <path>` | `CRAFT_TLS_CA` | — | Custom CA certificate for self-signed TLS |
+| `--json` | — | `false` | Emit raw JSON output (useful for scripting) |
+| `--send-timeout <ms>` | — | `300000` | Timeout for the `send` command (5 minutes) |
+
+**Quick setup using environment variables:**
+
+```bash
+export CRAFT_SERVER_URL=ws://127.0.0.1:9100
+export CRAFT_SERVER_TOKEN=your-secret-token
+
+craft-cli ping
+```
+
+---
+
+## Info & Health
+
+Use these commands to verify that the server is reachable and healthy before running any workloads.
+
+<AccordionGroup>
+  <Accordion title="ping — Verify connectivity">
+    Sends a handshake to the server and reports the client ID and round-trip latency.
+
+    ```bash
+    craft-cli ping
+    ```
+
+    **Example output:**
+    ```
+    clientId: cli-a1b2c3  latency: 12ms
+    ```
+  </Accordion>
+
+  <Accordion title="health — Credential store health">
+    Checks whether the server's encrypted credential store is accessible and functioning.
+
+    ```bash
+    craft-cli health
+    ```
+  </Accordion>
+
+  <Accordion title="versions — Server runtime versions">
+    Displays version information for the server runtime and its components.
+
+    ```bash
+    craft-cli versions
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Resources
+
+List the resources available on the connected server.
+
+<AccordionGroup>
+  <Accordion title="workspaces — List workspaces">
+    Returns all workspaces on the server.
+
+    ```bash
+    craft-cli workspaces
+
+    # JSON output for scripting
+    craft-cli --json workspaces | jq '.[].name'
+    ```
+  </Accordion>
+
+  <Accordion title="sessions — List sessions">
+    Lists all sessions in the current (or specified) workspace.
+
+    ```bash
+    craft-cli sessions
+
+    # Target a specific workspace
+    craft-cli --workspace my-workspace-id sessions
+    ```
+  </Accordion>
+
+  <Accordion title="connections — List LLM connections">
+    Lists all configured LLM provider connections for the workspace.
+
+    ```bash
+    craft-cli connections
+    ```
+  </Accordion>
+
+  <Accordion title="sources — List configured sources">
+    Lists all sources (MCP servers, REST APIs, local filesystems) connected to the workspace.
+
+    ```bash
+    craft-cli sources
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Session Management
+
+Create, inspect, and delete sessions. Sessions hold your conversation history and tool context.
+
+<AccordionGroup>
+  <Accordion title="session create — Create a session">
+    Creates a new session in the current workspace. Returns the session object, including its `id`.
+
+    **Syntax:**
+    ```bash
+    craft-cli session create [--name <name>] [--mode <mode>]
+    ```
+
+    <ParamField query="--name" type="string">
+      Human-readable name for the session. Defaults to an auto-generated title.
+    </ParamField>
+
+    <ParamField query="--mode" type="string">
+      Permission mode: `safe` (read-only), `ask` (prompt before writes), or `allow-all` (auto-approve). Defaults to `allow-all`.
+    </ParamField>
+
+    ```bash
+    # Create a named session
+    craft-cli session create --name "PR Review" --mode ask
+
+    # Capture the ID for use in subsequent commands
+    SESSION_ID=$(craft-cli --json session create --name "CI Run" | jq -r '.id')
+    ```
+  </Accordion>
+
+  <Accordion title="session messages — Print message history">
+    Prints the full message history for a session.
+
+    **Syntax:**
+    ```bash
+    craft-cli session messages <id>
+    ```
+
+    ```bash
+    craft-cli session messages abc-123
+    ```
+  </Accordion>
+
+  <Accordion title="session delete — Delete a session">
+    Permanently deletes a session and its message history.
+
+    **Syntax:**
+    ```bash
+    craft-cli session delete <id>
+    ```
+
+    ```bash
+    craft-cli session delete abc-123
+    ```
+  </Accordion>
+
+  <Accordion title="cancel — Cancel in-progress processing">
+    Cancels any in-progress LLM or tool execution for a session.
+
+    **Syntax:**
+    ```bash
+    craft-cli cancel <id>
+    ```
+
+    ```bash
+    craft-cli cancel abc-123
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Messaging
+
+### send
+
+Sends a message to a session and streams the AI response to stdout in real time.
+
+**Syntax:**
+```bash
+craft-cli send <session-id> <message>
+```
+
+```bash
+# Send a plain message
+craft-cli send abc-123 "What files are in the current directory?"
+
+# Pipe content from stdin
+cat error.log | craft-cli send abc-123 --stdin
+echo "Summarize this" | craft-cli send abc-123
+```
+
+#### Streamed Event Types
+
+The `send` command subscribes to session events and writes them to stdout as they arrive. Exit codes reflect the final event: `0` for `complete`, `1` for `error`, `130` for `interrupted`.
+
+| Event | Output |
+|-------|--------|
+| `text_delta` | AI text streamed inline to stdout |
+| `tool_start` | `[tool: <name>]` marker printed to stdout |
+| `tool_result` | Tool output, truncated to 200 characters |
+| `error` | Error message printed to stderr, exits with code `1` |
+| `complete` | Stream ends cleanly, exits with code `0` |
+| `interrupted` | Processing was cancelled, exits with code `130` |
+
+---
+
+## Advanced
+
+<AccordionGroup>
+  <Accordion title="invoke — Raw RPC call">
+    Sends a raw RPC message on any channel with optional JSON arguments. Useful for calling server methods that don't have a dedicated command.
+
+    **Syntax:**
+    ```bash
+    craft-cli invoke <channel> [json-args...]
+    ```
+
+    ```bash
+    craft-cli invoke system:homeDir
+    craft-cli invoke sessions:get '"workspace-123"'
+    ```
+  </Accordion>
+
+  <Accordion title="listen — Subscribe to push events">
+    Subscribes to a push event channel and prints events to stdout as they arrive. Press `Ctrl+C` to unsubscribe.
+
+    **Syntax:**
+    ```bash
+    craft-cli listen <channel>
+    ```
+
+    ```bash
+    craft-cli listen session:event
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Testing
+
+### --validate-server
+
+Runs a 21-step integration test against the target server, covering the complete session lifecycle including source and skill creation. All temporary resources are cleaned up on completion.
+
+```bash
+# Against a running server
+craft-cli --validate-server --url ws://127.0.0.1:9100 --token <token>
+
+# Self-contained (auto-spawns a local server)
+craft-cli --validate-server
+```
+
+<Note>
+  This test **mutates workspace state** — it creates and deletes a temporary session, source, and skill. All resources are cleaned up whether the test passes or fails. Use `--json` for machine-readable results.
+</Note>
+
+<Steps>
+  <Step title="Connect + handshake">
+    Establishes the WebSocket connection and completes the protocol handshake.
+  </Step>
+  <Step title="credentials:healthCheck">
+    Verifies the encrypted credential store is accessible.
+  </Step>
+  <Step title="system:versions">
+    Reads server runtime version information.
+  </Step>
+  <Step title="system:homeDir">
+    Resolves the server's home directory.
+  </Step>
+  <Step title="workspaces:get">
+    Lists available workspaces.
+  </Step>
+  <Step title="sessions:get">
+    Lists sessions in the workspace.
+  </Step>
+  <Step title="LLM_Connection:list">
+    Lists configured LLM provider connections.
+  </Step>
+  <Step title="sources:get">
+    Lists configured sources.
+  </Step>
+  <Step title="sessions:create">
+    Creates a temporary `__cli-validate-*` session.
+  </Step>
+  <Step title="sessions:getMessages">
+    Reads the (empty) message history of the new session.
+  </Step>
+  <Step title="Send message + stream (text)">
+    Sends a prompt and verifies a streamed text response.
+  </Step>
+  <Step title="Send message + tool use (Bash)">
+    Sends a prompt that triggers the Bash tool, verifying tool execution.
+  </Step>
+  <Step title="sources:create">
+    Creates a temporary Cat Facts API source.
+  </Step>
+  <Step title="Send + source mention">
+    Sends a prompt that mentions the newly created source.
+  </Step>
+  <Step title="Send + skill create">
+    Sends a prompt that writes a `SKILL.md` via the Bash tool.
+  </Step>
+  <Step title="skills:get">
+    Verifies the new skill appears in the skill list.
+  </Step>
+  <Step title="Send + skill mention">
+    Sends a prompt that invokes the newly created skill.
+  </Step>
+  <Step title="skills:delete">
+    Deletes the temporary skill.
+  </Step>
+  <Step title="sources:delete">
+    Deletes the temporary source.
+  </Step>
+  <Step title="sessions:delete">
+    Deletes the temporary session.
+  </Step>
+  <Step title="Disconnect">
+    Closes the WebSocket connection cleanly.
+  </Step>
+</Steps>

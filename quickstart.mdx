@@ -1,47 +1,91 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Craft Agents in 5 Minutes"
+sidebarTitle: "Quickstart"
+description: "Launch Craft Agents, connect an LLM provider, and run your first AI agent session in under five minutes."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+This guide walks you through everything you need to go from a fresh install to an active AI agent session. By the end, you'll have Craft Agents running, an LLM provider connected, and a solid understanding of how sessions and permission modes work.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Install Craft Agents">
+    If you haven't installed Craft Agents yet, follow the [Installation guide](/installation). The quickest path is the one-line installer:
 
+    **macOS / Linux:**
     ```bash
-    npm install your-package
+    curl -fsSL https://agents.craft.do/install-app.sh | bash
     ```
+
+    **Windows (PowerShell):**
+    ```powershell
+    irm https://agents.craft.do/install-app.ps1 | iex
+    ```
+
+    Once the installer finishes, launch **Craft Agents** from your Applications folder, Start Menu, or desktop shortcut.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
+  <Step title="Create a workspace">
+    A workspace is the folder Craft Agents scopes its sessions to — think of it as the root directory the agent can read from and write to.
+
+    1. On the welcome screen, click **New Workspace**.
+    2. Choose or create a folder on your machine (for example, an existing project directory or a new `~/projects/my-agent-workspace` folder).
+    3. Give the workspace a name and click **Create**.
+
+    You can add more workspaces at any time from the sidebar. Each workspace has its own sources, skills, automations, and session history.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
-    ```
+  <Step title="Connect an LLM provider">
+    Craft Agents supports several LLM providers out of the box. Open **Settings → Connections → Add Connection** and choose the option that suits you:
+
+    | Provider | Auth method |
+    |----------|-------------|
+    | **Anthropic** | API key or Claude Max / Pro OAuth |
+    | **Google AI Studio** | API key |
+    | **ChatGPT Plus** | Codex OAuth (sign in with your subscription) |
+    | **GitHub Copilot** | OAuth device-code flow |
+    | **OpenRouter** | API key + custom endpoint |
+
+    Paste your API key (or complete the OAuth flow) and click **Save**. You can add multiple providers and set a per-workspace default from the workspace settings panel.
+  </Step>
+
+  <Step title="Start your first session">
+    With your workspace open and a provider connected, create a new session:
+
+    1. Press **Cmd+N** (macOS) or **Ctrl+N** (Windows / Linux) to open a new session.
+    2. Type a message in the chat input — for example: `List all the files in this directory and summarize what this project does.`
+    3. Press **Enter** to send.
+
+    The agent streams its response in real time, showing tool calls (file reads, bash commands, API requests) inline as they happen. Use **Shift+Enter** to add a new line without sending.
+  </Step>
+
+  <Step title="Set a permission mode">
+    Permission modes control how much autonomy the agent has to make changes on your behalf. Press **SHIFT+TAB** in the chat input to cycle through the three modes:
+
+    | Mode | Display | Behavior |
+    |------|---------|----------|
+    | `safe` | **Explore** | Read-only — all write operations are blocked. |
+    | `ask` | **Ask to Edit** | The agent prompts you for approval before any write. *(Default)* |
+    | `allow-all` | **Auto** | The agent auto-approves all commands and file changes. |
+
+    The current mode is shown in the chat toolbar. Start with **Ask to Edit** while you're getting familiar with the agent's behavior, then switch to **Auto** for tasks you trust it to handle end-to-end.
   </Step>
 </Steps>
 
 <Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
-
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+  Permission modes can be set globally, per workspace, or even per session. You can also define fine-grained rules — for example, always allow file reads but require approval for shell commands. See the [Permission Modes reference](/concepts/permission-modes) for details.
 </Tip>
+
+## Next Steps
+
+Now that your first session is running, explore the features that make Craft Agents powerful for day-to-day development work.
+
+<CardGroup cols={3}>
+  <Card title="Sources Overview" icon="plug" href="/sources/overview">
+    Connect MCP servers, REST APIs, and local filesystems to give the agent access to your tools and data.
+  </Card>
+  <Card title="Skills" icon="wand-magic-sparkles" href="/guides/skills">
+    Create reusable, workspace-scoped instructions the agent can apply on demand with a simple @mention.
+  </Card>
+  <Card title="Automations" icon="robot" href="/guides/automations">
+    Set up event-driven workflows that trigger agent sessions on schedules, label changes, and more.
+  </Card>
+</CardGroup>

@@ -1,0 +1,55 @@
+---
+title: "Craft Agents: AI Agent Desktop App for Developers"
+sidebarTitle: "Introduction"
+description: "Craft Agents is a desktop app for running powerful AI agents with a polished multi-session inbox, built-in integrations, and event-driven automation."
+---
+
+Welcome to Craft Agents — a desktop-first AI agent application built for developers who want to work with powerful AI agents without the friction of CLI tools or bare API wrappers. Craft Agents gives you a polished inbox to manage multiple concurrent AI coding and research sessions, deep integrations with the services you already use, and a highly customizable automation layer — all in a beautiful, fluid UI that gets out of your way.
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Download and install Craft Agents on macOS, Windows, or Linux in seconds with a single command.
+  </Card>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Connect an LLM provider and run your first AI agent session in under five minutes.
+  </Card>
+  <Card title="Sources Overview" icon="plug" href="/sources/overview">
+    Connect MCP servers, REST APIs, and local filesystems to supercharge your agent sessions.
+  </Card>
+  <Card title="Skills" icon="wand-magic-sparkles" href="/guides/skills">
+    Create reusable, workspace-scoped agent instructions that you can invoke with a simple @mention.
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Multi-Session Inbox" icon="inbox">
+    Manage multiple concurrent agent sessions with a full status workflow — Todo, In Progress, Needs Review, Done — plus flagging and AI-generated session titles.
+  </Card>
+  <Card title="Multiple LLM Providers" icon="brain">
+    Connect Anthropic (API key or Claude Max OAuth), Google AI Studio, ChatGPT Plus, GitHub Copilot OAuth, OpenRouter, and more — with per-workspace defaults.
+  </Card>
+  <Card title="Sources & Integrations" icon="database">
+    Hook up MCP servers, REST APIs (Google, Slack, Microsoft), local filesystems, and Obsidian vaults. Just tell the agent what you want to connect — it handles the rest.
+  </Card>
+  <Card title="Skills" icon="graduation-cap">
+    Store specialized agent instructions per workspace and reference them mid-conversation with @mentions for instant, reusable context.
+  </Card>
+  <Card title="Automations" icon="robot">
+    Trigger agent sessions automatically on label changes, cron schedules, tool use events, and more — no extra infrastructure required.
+  </Card>
+  <Card title="Permission Modes" icon="shield-halved">
+    Three-level permission system — Explore (read-only), Ask to Edit (approval prompts), and Auto (fully autonomous) — switchable with SHIFT+TAB at any time.
+  </Card>
+  <Card title="Remote Server Mode" icon="server">
+    Run a headless Craft Agents server on a Linux VPS and connect the desktop app as a thin client, keeping long-running sessions alive across machines.
+  </Card>
+  <Card title="File Attachments & Diffs" icon="file-lines">
+    Drag and drop images, PDFs, and Office documents directly into sessions, and review all file changes in a VS Code-style multi-file diff view.
+  </Card>
+</CardGroup>
+
+## How It Works
+
+Craft Agents runs as an Electron desktop app backed by a local (or remote) agent server. When you create a session and send a message, the agent uses the Claude Agent SDK or Pi SDK to process your request, stream a response, and execute tools — reading files, running bash commands, calling APIs — all within the permission boundaries you set. Sources extend what the agent can reach: connect a GitHub MCP server, a Slack REST API, or a local filesystem, and the agent can pull context from all of them in a single turn. Skills and Automations let you encode repeatable workflows so the agent knows exactly how you like things done, without you having to re-explain it every time.

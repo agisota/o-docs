@@ -1,0 +1,548 @@
+---
+title: "Automations Configuration Reference"
+sidebarTitle: "Automations"
+description: "Full reference for automations.json: all supported events, action types, conditions, environment variables, cron syntax, and webhook retry behavior."
+---
+
+Automations let you wire Craft Agents to the rest of your workflow without writing code. When something happens inside the app — a label is added, a session changes status, or a cron schedule fires — automations can create a new agent session, send an HTTP request to an external service, or do both in sequence. This reference documents every field, event, condition, and variable available in `automations.json`.
+
+<Note>
+  Automations are stored at `~/.craft-agent/workspaces/{id}/automations.json`.
+  The easiest way to create and modify them is to ask the agent directly — for
+  example, *"Set up a daily standup briefing every weekday at 9 am"* — but you
+  can also edit the file manually using the schema below.
+</Note>
+
+---
+
+## Schema version
+
+Every `automations.json` must declare `"version": 2` at the top level. The app
+rejects files with a missing or unknown version.
+
+```json
+{
+  "version": 2,
+  "automations": { }
+}
+```
+
+---
+
+## Full schema
+
+```json
+{
+  "version": 2,
+  "automations": {
+    "EventName": [
+      {
+        "name": "Optional display name",
+        "matcher": "regex-pattern",
+        "cron": "0 9 * * 1-5",
+        "timezone": "America/New_York",
+        "permissionMode": "ask",
+        "labels": ["Scheduled"],
+        "telegramTopic": "Topic Name",
+        "conditions": [ ],
+        "actions": [
+          { "type": "prompt", "prompt": "..." },
+          { "type": "webhook", "url": "...", "method": "POST", "body": { } }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Top-level matcher fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | `string` | No | Human-readable display name. Auto-derived from the first action if omitted. |
+| `matcher` | `string` | No | Regular expression tested against the event value. Omit to match all events of this type. |
+| `cron` | `string` | `SchedulerTick` only | Cron expression controlling when the tick fires. Required for `SchedulerTick`. |
+| `timezone` | `string` | No | IANA timezone for cron and time conditions (e.g., `Europe/Budapest`). Falls back to system timezone. |
+| `permissionMode` | `string` | No | Permission mode for sessions created by prompt actions: `safe`, `ask`, or `allow-all`. |
+| `labels` | `string[]` | No | Labels automatically applied to sessions created by prompt actions. |
+| `telegramTopic` | `string` | No | Routes spawned sessions to a named Telegram supergroup topic (requires Telegram integration in Settings). |
+| `conditions` | `array` | No | Optional post-match filters. All must pass before actions fire. See [Conditions](#conditions). |
+| `actions` | `array` | **Yes** | Ordered list of actions to execute. At least one action is required. |
+
+---
+
+## Events reference
+
+### App events
+
+These events are emitted by Craft Agents itself in response to user or system actions.
+
+| Event | Trigger | Matcher value |
+|---|---|---|
+| `LabelAdd` | A label is added to a session | Label ID (e.g., `bug`, not `Bug`) |
+| `LabelRemove` | A label is removed from a session | Label ID |
+| `LabelConfigChange` | The global label configuration is modified | Always matches |
+| `PermissionModeChange` | The session permission mode is changed | New mode name (`safe`, `ask`, `allow-all`) |
+| `FlagChange` | A session is flagged or unflagged | `true` or `false` |
+| `SessionStatusChange` | A session moves to a new status | New status slug (e.g., `done`, `in_progress`) |
+| `SchedulerTick` | Fires every minute; matched via `cron` field | Uses cron matching, not regex |
+
+<Note>
+  `TodoStateChange` is a deprecated alias for `SessionStatusChange`. Existing
+  configs using the old name continue to work but will show a deprecation
+  warning during validation.
+</Note>
+
+### Agent events
+
+These events are passed directly into the Claude SDK agent lifecycle.
+
+| Event | Trigger | Matcher value |
+|---|---|---|
+| `PreToolUse` | Just before a tool executes | Tool name |
+| `PostToolUse` | After a tool executes successfully | Tool name |
+| `PostToolUseFailure` | After a tool execution fails | Tool name |
+| `Notification` | A notification is received | — |
+| `UserPromptSubmit` | The user submits a prompt | — |
+| `SessionStart` | A session starts | — |
+| `SessionEnd` | A session ends | — |
+| `Stop` | The agent stops | — |
+| `SubagentStart` | A subagent is spawned | — |
+| `SubagentStop` | A subagent completes | — |
+| `PreCompact` | Just before context compaction | — |
+| `PermissionRequest` | A permission is requested by the agent | — |
+| `Setup` | Initial workspace setup | — |
+
+---
+
+## Action types
+
+### Prompt action
+
+A prompt action creates a new agent session and sends the specified prompt. For `SchedulerTick` events a brand-new session is always created. For other events the prompt is sent into a contextual session linked to the triggering event.
+
+```json
+{
+  "type": "prompt",
+  "prompt": "Run the @weather skill and give me today's forecast",
+  "llmConnection": "my-anthropic",
+  "model": "claude-opus-4-5-20250929"
+}
+```
+
+<ParamField path="type" type='"prompt"' required>
+  Must be `"prompt"`.
+</ParamField>
+
+<ParamField path="prompt" type="string" required>
+  The text sent as the user message. Supports `@mentions` to reference sources
+  and skills, and `$VAR` / `${VAR}` syntax for environment variable expansion.
+</ParamField>
+
+<ParamField path="llmConnection" type="string">
+  Slug of the LLM connection to use for the created session (configured in AI
+  Settings). Falls back to the workspace default if omitted or invalid.
+</ParamField>
+
+<ParamField path="model" type="string">
+  Model ID override for the created session (e.g., `gemini-2.5-flash`). Falls
+  back to the connection's default model if omitted.
+</ParamField>
+
+---
+
+### Webhook action
+
+A webhook action sends an HTTP request to an external URL. Use it to notify Slack, Discord, or any custom API when an event fires.
+
+```json
+{
+  "type": "webhook",
+  "url": "${CRAFT_WH_SLACK_URL}",
+  "method": "POST",
+  "headers": {
+    "X-Source": "craft-agent"
+  },
+  "bodyFormat": "json",
+  "body": {
+    "text": "Session *${CRAFT_SESSION_NAME}* changed status to ${CRAFT_NEW_STATE}"
+  },
+  "auth": {
+    "type": "bearer",
+    "token": "${CRAFT_WH_API_TOKEN}"
+  },
+  "captureResponse": false
+}
+```
+
+<ParamField path="type" type='"webhook"' required>
+  Must be `"webhook"`.
+</ParamField>
+
+<ParamField path="url" type="string" required>
+  Target URL. Must resolve to `http://` or `https://`. Literal URLs are validated
+  at config load time; templated URLs (containing `$VAR`) are validated at
+  runtime after variable expansion.
+</ParamField>
+
+<ParamField path="method" type="string">
+  HTTP method. One of `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`. Defaults to
+  `POST`.
+</ParamField>
+
+<ParamField path="headers" type="object">
+  Key-value pairs added as HTTP headers. Values support `$VAR` expansion.
+  Setting `Authorization` here overrides any value generated by the `auth`
+  shorthand.
+</ParamField>
+
+<ParamField path="bodyFormat" type="string">
+  How the `body` is serialized. Defaults to `json`.
+
+  - `json` — Serializes body as JSON. Sets `Content-Type: application/json` automatically.
+  - `form` — URL-encodes body as `application/x-www-form-urlencoded`. Useful for OAuth token endpoints and legacy APIs.
+  - `raw` — Sends body as a plain string. You must set `Content-Type` in `headers` yourself.
+</ParamField>
+
+<ParamField path="body" type="object | string">
+  Request body. Ignored for `GET` requests. Object values and string values both
+  support `$VAR` expansion.
+</ParamField>
+
+<ParamField path="auth" type="object">
+  Authentication shorthand. Generates the `Authorization` header automatically.
+  Supported types:
+
+  - `{ "type": "bearer", "token": "..." }` — produces `Authorization: Bearer <token>`
+  - `{ "type": "basic", "username": "...", "password": "..." }` — produces base64-encoded Basic auth
+
+  All values in the `auth` object support `$VAR` expansion.
+</ParamField>
+
+<ParamField path="captureResponse" type="boolean">
+  When `true`, captures the response body (truncated to 4 KB) and records it in
+  automation history (truncated to 500 chars). Defaults to `false`.
+</ParamField>
+
+<Warning>
+  Webhook actions only have access to `CRAFT_*` system variables and
+  `CRAFT_WH_*` user-defined secrets. They do **not** have access to your full
+  system environment (`$HOME`, `$PATH`, `$DATABASE_URL`, etc.).
+</Warning>
+
+---
+
+## Environment variables
+
+Both prompt and webhook actions support `$VAR` and `${VAR}` expansion.
+
+### System variables (`CRAFT_*`)
+
+These are set automatically by the automation engine for every event.
+
+| Variable | Description | Available for |
+|---|---|---|
+| `$CRAFT_EVENT` | Event name (e.g., `LabelAdd`) | All events |
+| `$CRAFT_EVENT_DATA` | Full event payload as JSON string | All events |
+| `$CRAFT_SESSION_ID` | ID of the triggering session | Events with session context |
+| `$CRAFT_SESSION_NAME` | Name of the triggering session | Events with session context |
+| `$CRAFT_WORKSPACE_ID` | ID of the current workspace | All events |
+
+### Per-event variables
+
+| Event | Variable | Description |
+|---|---|---|
+| `LabelAdd` / `LabelRemove` | `$CRAFT_LABEL` | The label ID that was added or removed |
+| `PermissionModeChange` | `$CRAFT_OLD_MODE` | Previous permission mode |
+| `PermissionModeChange` | `$CRAFT_NEW_MODE` | New permission mode |
+| `FlagChange` | `$CRAFT_IS_FLAGGED` | `true` or `false` |
+| `SessionStatusChange` | `$CRAFT_OLD_STATE` | Previous status slug |
+| `SessionStatusChange` | `$CRAFT_NEW_STATE` | New status slug |
+| `SchedulerTick` | `$CRAFT_LOCAL_TIME` | Current local time (e.g., `14:30`) |
+| `SchedulerTick` | `$CRAFT_LOCAL_DATE` | Current local date (e.g., `2026-03-09`) |
+
+### User-defined webhook secrets (`CRAFT_WH_*`)
+
+You can define your own secrets by exporting environment variables prefixed with `CRAFT_WH_` in your shell profile. Craft Agents injects only `CRAFT_WH_*` variables into webhook actions, keeping your broader environment private.
+
+```bash
+# ~/.zshrc or ~/.bashrc
+export CRAFT_WH_SLACK_URL="https://hooks.slack.com/services/T.../B.../xxx"
+export CRAFT_WH_DISCORD_URL="https://discord.com/api/webhooks/123/abc"
+export CRAFT_WH_API_TOKEN="your-secret-token"
+```
+
+Reference them in `automations.json`:
+
+```json
+{
+  "type": "webhook",
+  "url": "${CRAFT_WH_SLACK_URL}",
+  "body": { "text": "Hello from ${CRAFT_SESSION_NAME}" }
+}
+```
+
+<Tip>
+  Keep all sensitive URLs and tokens in `CRAFT_WH_*` environment variables
+  rather than hardcoding them in `automations.json`. This prevents accidental
+  exposure if the file is shared or committed to version control.
+</Tip>
+
+<Note>
+  Environment variables are **not** expanded during test runs (the "Test"
+  button in the UI). Tests send the raw URL and body as configured.
+</Note>
+
+---
+
+## Conditions
+
+Conditions are optional filters that run **after** the matcher or cron matches but **before** actions fire. Place them in the `conditions` array. All entries must pass (implicit AND). Omit the array to fire unconditionally.
+
+### Time condition
+
+Filters based on the current time-of-day and day-of-week.
+
+```json
+{
+  "condition": "time",
+  "after": "09:00",
+  "before": "17:00",
+  "weekday": ["mon", "tue", "wed", "thu", "fri"],
+  "timezone": "Europe/Budapest"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `after` | `"HH:MM"` | Start of time window (inclusive) |
+| `before` | `"HH:MM"` | End of time window (exclusive) |
+| `weekday` | `string[]` | Allowed days: `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun` |
+| `timezone` | `string` | IANA timezone. Falls back to the matcher's `timezone`, then system local |
+
+If `after` is later than `before` (e.g., `"after": "22:00", "before": "06:00"`), the window wraps across midnight.
+
+### State condition
+
+Checks fields from the event payload. Useful for filtering specific transitions.
+
+```json
+{
+  "condition": "state",
+  "field": "permissionMode",
+  "from": "safe",
+  "to": "allow-all"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `field` | `string` | Payload field name (e.g., `permissionMode`, `sessionStatus`, `isFlagged`) |
+| `value` | `any` | Exact match |
+| `from` | `any` | Previous value (for transition events) |
+| `to` | `any` | New value (for transition events) |
+| `contains` | `string` | Array membership check (e.g., whether a label is present) |
+| `not_value` | `any` | Matches anything except this value |
+
+For `permissionMode` and `sessionStatus`, `from`/`to` automatically resolve to the correct payload keys (`oldMode`/`newMode`, `oldState`/`newState`).
+
+### Logical composition (`and`, `or`, `not`)
+
+Combine multiple conditions using logical operators. Conditions can be nested up to 8 levels deep.
+
+```json
+{ "condition": "and", "conditions": [ ... ] }
+{ "condition": "or",  "conditions": [ ... ] }
+{ "condition": "not", "conditions": [ ... ] }
+```
+
+| Type | Behavior |
+|---|---|
+| `and` | All sub-conditions must pass |
+| `or` | At least one sub-condition must pass |
+| `not` | None of the sub-conditions may pass |
+
+---
+
+## Cron syntax
+
+Used exclusively with `SchedulerTick`. The format is standard five-field cron:
+
+```
+minute  hour  day-of-month  month  day-of-week
+```
+
+| Field | Allowed values |
+|---|---|
+| Minute | `0`–`59` |
+| Hour | `0`–`23` |
+| Day of month | `1`–`31` |
+| Month | `1`–`12` |
+| Day of week | `0`–`6` (0 = Sunday) |
+
+**Examples:**
+
+| Expression | Meaning |
+|---|---|
+| `*/15 * * * *` | Every 15 minutes |
+| `0 9 * * *` | Daily at 9:00 AM |
+| `0 9 * * 1-5` | Weekdays at 9:00 AM |
+| `30 14 1 * *` | 1st of each month at 2:30 PM |
+| `0 */6 * * *` | Every 6 hours |
+
+Pair the `cron` field with `timezone` to anchor the schedule to a specific IANA timezone (e.g., `America/New_York`, `Europe/Budapest`).
+
+---
+
+## Webhook retry behavior
+
+### Immediate retries
+
+When a webhook fails with a server error (5xx), timeout, or connection error, Craft Agents retries it automatically up to **2 times** with exponential backoff (1 s → 2 s → 4 s). Client errors (4xx) are **not** retried — they indicate a configuration problem.
+
+### Deferred retries
+
+If all immediate retries are exhausted, the webhook enters a **persistent retry queue** that survives app restarts.
+
+| Attempt | Delay | Cumulative wait |
+|---|---|---|
+| 1st deferred | 5 minutes | 5 min |
+| 2nd deferred | 30 minutes | 35 min |
+| 3rd deferred | 1 hour | ~1.5 hours |
+
+After the final deferred attempt fails, the webhook is marked permanently failed in automation history.
+
+<Note>
+  Retried requests use the webhook configuration **as it currently exists** in
+  `automations.json`, not the configuration at the time of the original failure.
+  If you changed the URL or headers after a failure, the retry will use the
+  updated values.
+</Note>
+
+---
+
+## Rate limits
+
+To prevent runaway feedback loops, the event bus enforces per-event-type rate limits per 60-second window. Excess events are silently dropped and a warning is logged.
+
+| Event | Max fires per minute |
+|---|---|
+| `SchedulerTick` | 60 (1 per second) |
+| All other events | 10 |
+
+---
+
+## Complete examples
+
+### Daily weather report
+
+```json
+{
+  "version": 2,
+  "automations": {
+    "SchedulerTick": [
+      {
+        "name": "Daily Weather Report",
+        "cron": "0 8 * * *",
+        "timezone": "Europe/Budapest",
+        "labels": ["Scheduled", "weather"],
+        "actions": [
+          {
+            "type": "prompt",
+            "prompt": "Run the @weather skill and give me today's forecast"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Slack notification when a session is marked done
+
+Requires `CRAFT_WH_SLACK_URL` exported in your shell profile.
+
+```json
+{
+  "version": 2,
+  "automations": {
+    "SessionStatusChange": [
+      {
+        "name": "Notify Slack on Done",
+        "matcher": "^done$",
+        "actions": [
+          {
+            "type": "webhook",
+            "url": "${CRAFT_WH_SLACK_URL}",
+            "method": "POST",
+            "body": {
+              "text": ":white_check_mark: Session *${CRAFT_SESSION_NAME}* marked as done"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Urgent label — notify then triage (mixed actions)
+
+```json
+{
+  "version": 2,
+  "automations": {
+    "LabelAdd": [
+      {
+        "name": "Urgent: Notify and Triage",
+        "matcher": "^urgent$",
+        "actions": [
+          {
+            "type": "webhook",
+            "url": "${CRAFT_WH_SLACK_URL}",
+            "method": "POST",
+            "body": {
+              "text": ":rotating_light: Urgent label added to *${CRAFT_SESSION_NAME}*"
+            }
+          },
+          {
+            "type": "prompt",
+            "prompt": "An urgent label was added. Triage this session and summarise what needs immediate attention."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Weekday-only morning briefing (with condition)
+
+```json
+{
+  "version": 2,
+  "automations": {
+    "SchedulerTick": [
+      {
+        "name": "Morning AI News",
+        "cron": "0 9 * * *",
+        "timezone": "Europe/Budapest",
+        "conditions": [
+          {
+            "condition": "time",
+            "weekday": ["mon", "tue", "wed", "thu", "fri"],
+            "timezone": "Europe/Budapest"
+          }
+        ],
+        "labels": ["Scheduled", "ai-news"],
+        "actions": [
+          {
+            "type": "prompt",
+            "prompt": "Run the @ai-news skill and summarize today's AI developments"
+          }
+        ]
+      }
+    ]
+  }
+}
+```

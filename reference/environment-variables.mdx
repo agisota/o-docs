@@ -1,0 +1,207 @@
+---
+title: "Craft Agents Environment Variables Reference"
+sidebarTitle: "Environment Variables"
+description: "All environment variables for the Craft Agents server and CLI: server configuration, authentication, TLS, LLM defaults, and webhook secrets."
+---
+
+Craft Agents is configured primarily through its UI and config files, but several aspects of server behavior, CLI connectivity, and automation secrets are controlled through environment variables. This reference covers every variable the server process, the CLI client, and the automation webhook engine recognise, including the security-sensitive variables that are automatically filtered from subprocess environments.
+
+---
+
+## Server variables
+
+These variables are read by the headless server process (`packages/server/src/index.ts`). Set them in your shell, a `.env` file, or your container environment before starting the server.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `CRAFT_SERVER_TOKEN` | **Yes** | — | Bearer token used to authenticate WebSocket clients. Generate a secure value with `openssl rand -hex 32`. |
+| `CRAFT_RPC_HOST` | No | `127.0.0.1` | Address the server binds to. Set to `0.0.0.0` to accept connections from remote machines. |
+| `CRAFT_RPC_PORT` | No | `9100` | TCP port the server listens on. |
+| `CRAFT_RPC_TLS_CERT` | No | — | Path to a PEM certificate file. Setting this variable switches the server from `ws://` to `wss://`. |
+| `CRAFT_RPC_TLS_KEY` | No | — | Path to the PEM private key file. Required when `CRAFT_RPC_TLS_CERT` is set. |
+| `CRAFT_RPC_TLS_CA` | No | — | Path to a PEM CA chain file. Optional; enables client certificate verification. |
+| `CRAFT_DEBUG` | No | `false` | Set to `true` to enable verbose debug logging. |
+
+**Minimal remote-access example:**
+
+```bash
+CRAFT_SERVER_TOKEN=$(openssl rand -hex 32) \
+CRAFT_RPC_HOST=0.0.0.0 \
+bun run packages/server/src/index.ts
+```
+
+**With TLS enabled:**
+
+```bash
+CRAFT_SERVER_TOKEN=<your-token> \
+CRAFT_RPC_HOST=0.0.0.0 \
+CRAFT_RPC_TLS_CERT=certs/cert.pem \
+CRAFT_RPC_TLS_KEY=certs/key.pem \
+bun run packages/server/src/index.ts
+```
+
+The server prints `CRAFT_SERVER_URL=wss://<your-ip>:9100` on startup when TLS is active.
+
+<Warning>
+  Never expose a server without TLS or a firewall over the public internet.
+  For production deployments, use certificates from a trusted CA (e.g.,
+  Let's Encrypt) or terminate TLS at a reverse proxy such as nginx or Caddy.
+</Warning>
+
+---
+
+## CLI variables
+
+The CLI client (`apps/cli/src/index.ts`) reads these variables to establish its WebSocket connection. You can set them once in your shell profile instead of passing flags on every command.
+
+| Variable | Description |
+|---|---|
+| `CRAFT_SERVER_URL` | WebSocket URL of the server (e.g., `ws://127.0.0.1:9100` or `wss://203.0.113.5:9100`). |
+| `CRAFT_SERVER_TOKEN` | Authentication token matching `CRAFT_SERVER_TOKEN` on the server. |
+| `CRAFT_TLS_CA` | Path to a custom CA certificate file for verifying self-signed TLS certs (`wss://`). |
+
+**Example — set once in your shell profile:**
+
+```bash
+# ~/.zshrc or ~/.bashrc
+export CRAFT_SERVER_URL=wss://203.0.113.5:9100
+export CRAFT_SERVER_TOKEN=<your-token>
+export CRAFT_TLS_CA=~/certs/ca.pem   # only needed for self-signed certs
+```
+
+All CLI commands then connect without additional flags:
+
+```bash
+craft-cli ping
+craft-cli sessions
+craft-cli send abc-123 "What files are in the current directory?"
+```
+
+---
+
+## LLM run-command variables
+
+The `craft-cli run` command is fully self-contained — it spawns a temporary server, sends a prompt, and exits. These variables supply the LLM provider configuration so you do not need to pass flags on every call.
+
+| Variable | Equivalent flag | Description |
+|---|---|---|
+| `LLM_PROVIDER` | `--provider` | Default LLM provider (e.g., `anthropic`, `openai`, `google`, `openrouter`, `groq`). |
+| `LLM_MODEL` | `--model` | Default model ID (e.g., `claude-opus-4-5-20250929`, `gpt-4o`, `gemini-2.0-flash`). |
+| `LLM_API_KEY` | `--api-key` | API key for the provider. Takes precedence over provider-specific env vars (see note). |
+| `LLM_BASE_URL` | `--base-url` | Custom API endpoint for proxies, gateways, or self-hosted models. |
+
+<Note>
+  `LLM_API_KEY` is checked first. If it is not set, `run` falls back to the
+  provider-specific variable for the chosen provider — for example
+  `ANTHROPIC_API_KEY` for Anthropic, `OPENAI_API_KEY` for OpenAI, or
+  `GOOGLE_API_KEY` for Google AI Studio.
+</Note>
+
+**Examples:**
+
+```bash
+# Anthropic (uses ANTHROPIC_API_KEY if LLM_API_KEY is unset)
+craft-cli run "Summarize the README"
+
+# OpenAI with explicit key
+LLM_PROVIDER=openai LLM_MODEL=gpt-4o LLM_API_KEY=$OPENAI_KEY \
+  craft-cli run "List open issues"
+
+# OpenRouter proxy
+LLM_PROVIDER=anthropic \
+LLM_BASE_URL=https://openrouter.ai/api/v1 \
+LLM_API_KEY=$OPENROUTER_KEY \
+  craft-cli run --model anthropic/claude-opus-4-5 "Hello"
+```
+
+---
+
+## Webhook secret variables (`CRAFT_WH_*`)
+
+Automations webhook actions only have access to variables prefixed with `CRAFT_WH_`. This keeps your broader shell environment private while still allowing you to parameterise webhook URLs, tokens, and other per-automation secrets.
+
+Define your secrets in your shell profile:
+
+```bash
+# ~/.zshrc or ~/.bashrc
+export CRAFT_WH_SLACK_URL="https://hooks.slack.com/services/T.../B.../xxx"
+export CRAFT_WH_DISCORD_URL="https://discord.com/api/webhooks/123/abc"
+export CRAFT_WH_API_TOKEN="your-secret-token"
+export CRAFT_WH_CLIENT_ID="your-oauth-client-id"
+export CRAFT_WH_CLIENT_SECRET="your-oauth-client-secret"
+```
+
+Reference them in `automations.json` with `$VAR` or `${VAR}` syntax:
+
+```json
+{
+  "type": "webhook",
+  "url": "${CRAFT_WH_SLACK_URL}",
+  "method": "POST",
+  "body": {
+    "text": "Session *${CRAFT_SESSION_NAME}* changed to ${CRAFT_NEW_STATE}"
+  }
+}
+```
+
+```json
+{
+  "type": "webhook",
+  "url": "https://api.example.com/events",
+  "auth": {
+    "type": "bearer",
+    "token": "${CRAFT_WH_API_TOKEN}"
+  },
+  "body": { "event": "${CRAFT_EVENT}" }
+}
+```
+
+<Tip>
+  After adding new `CRAFT_WH_*` variables to your shell profile, restart Craft
+  Agents so it picks up the updated environment. Variables added after launch
+  are not available until the next restart.
+</Tip>
+
+In addition to `CRAFT_WH_*` secrets, webhook actions always have access to the built-in `CRAFT_*` system variables documented in the [Automations reference](/reference/automations-reference#system-variables-craft).
+
+---
+
+## Security — filtered subprocess variables
+
+When Craft Agents spawns a local MCP server via stdio transport, it deliberately strips the following environment variables from the subprocess environment to prevent credential leakage to third-party or untrusted binaries.
+
+| Filtered variable | Category |
+|---|---|
+| `ANTHROPIC_API_KEY` | Craft Agents / Anthropic auth |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Craft Agents / Anthropic auth |
+| `AWS_ACCESS_KEY_ID` | AWS credentials |
+| `AWS_SECRET_ACCESS_KEY` | AWS credentials |
+| `AWS_SESSION_TOKEN` | AWS credentials |
+| `GITHUB_TOKEN` | GitHub auth |
+| `GH_TOKEN` | GitHub auth |
+| `OPENAI_API_KEY` | OpenAI auth |
+| `GOOGLE_API_KEY` | Google auth |
+| `STRIPE_SECRET_KEY` | Stripe auth |
+| `NPM_TOKEN` | npm registry auth |
+
+<Note>
+  To explicitly pass one of these variables to a specific MCP server — for
+  example, an MCP that legitimately needs `GITHUB_TOKEN` — add it to the `env`
+  field in that source's `config.json`. The `env` block is not filtered and its
+  values are passed directly to the subprocess.
+</Note>
+
+```json
+{
+  "type": "mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@my-org/github-mcp"],
+    "env": {
+      "GITHUB_TOKEN": "ghp_your_personal_access_token"
+    },
+    "authType": "none"
+  }
+}
+```

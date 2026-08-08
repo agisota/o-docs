@@ -1,0 +1,141 @@
+---
+title: "Run Craft Agents as a Headless Remote Server"
+sidebarTitle: "Remote Server"
+description: "Deploy the Craft Agents server on a VPS or cloud machine and connect your desktop app as a thin client over a secure WebSocket connection."
+---
+
+Craft Agents can run as a headless server on any Linux machine — a VPS, a cloud instance, or a bare-metal box — while your desktop app connects to it as a lightweight thin client. All session logic, tool execution, and LLM calls happen on the remote machine, which means you can harness powerful cloud hardware, keep long-running sessions alive around the clock, and pick up exactly where you left off from any device.
+
+## When to use remote mode
+
+- **Persistent sessions** — agents keep running even after you close your laptop.
+- **Powerful hardware** — offload heavy compute or large-context work to a cloud machine.
+- **Multi-device access** — connect from your laptop, desktop, or any other machine to the same running session.
+- **Team environments** — host a shared server that multiple desktop clients connect to.
+
+## Setup overview
+
+<Steps>
+  <Step title="Start the server on your remote machine">
+    From the monorepo root, generate a bearer token and start the server in one command:
+
+    ```bash
+    CRAFT_SERVER_TOKEN=$(openssl rand -hex 32) bun run packages/server/src/index.ts
+    ```
+
+    On startup the server prints its connection details to stdout:
+
+    ```
+    CRAFT_SERVER_URL=ws://203.0.113.5:9100
+    CRAFT_SERVER_TOKEN=<generated-token>
+    ```
+
+    Copy both values — you'll need them in the next step.
+  </Step>
+
+  <Step title="Note the URL and token">
+    The printed `CRAFT_SERVER_URL` contains the public IP address the server detected and the port it's listening on. The `CRAFT_SERVER_TOKEN` is the secret you passed in. Keep it somewhere safe; it's the only credential that protects access to your server.
+  </Step>
+
+  <Step title="Connect the desktop app as a thin client">
+    On your local machine, launch the Electron app in thin-client mode by setting the two environment variables:
+
+    ```bash
+    CRAFT_SERVER_URL=wss://203.0.113.5:9100 \
+    CRAFT_SERVER_TOKEN=<token> \
+    bun run electron:start
+    ```
+
+    The desktop app renders the full UI, but every session, tool call, and LLM request runs on the remote server.
+  </Step>
+
+  <Step title="Enable TLS (recommended)">
+    By default the server listens over plain `ws://`. For any connection that travels over the public internet, enable TLS so the token and all traffic are encrypted. See the [TLS setup](#tls-setup) section below.
+  </Step>
+</Steps>
+
+## Server environment variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `CRAFT_SERVER_TOKEN` | Yes | — | Bearer token for client authentication |
+| `CRAFT_RPC_HOST` | No | `127.0.0.1` | Bind address (`0.0.0.0` to accept remote connections) |
+| `CRAFT_RPC_PORT` | No | `9100` | Port the server listens on |
+| `CRAFT_RPC_TLS_CERT` | No | — | Path to PEM certificate file — enables `wss://` |
+| `CRAFT_RPC_TLS_KEY` | No | — | Path to PEM private key file (required when cert is set) |
+| `CRAFT_RPC_TLS_CA` | No | — | Path to PEM CA chain file for client certificate verification |
+| `CRAFT_DEBUG` | No | `false` | Enable verbose debug logging |
+
+<Note>
+  Set `CRAFT_RPC_HOST=0.0.0.0` when you want the server to accept connections from other machines. The default `127.0.0.1` only accepts connections from the same host.
+</Note>
+
+## TLS setup
+
+TLS switches the server URL from `ws://` to `wss://` and encrypts all traffic, including your bearer token on the wire. You should always use TLS when the server is exposed to the public internet.
+
+### Generate a self-signed certificate (development / testing)
+
+```bash
+mkdir -p certs
+
+openssl req -x509 -newkey rsa:4096 -nodes \
+  -keyout certs/key.pem \
+  -out certs/cert.pem \
+  -days 365 \
+  -subj "/CN=craft-agents-server"
+```
+
+### Start the server with TLS enabled
+
+```bash
+CRAFT_SERVER_TOKEN=<token> \
+CRAFT_RPC_HOST=0.0.0.0 \
+CRAFT_RPC_TLS_CERT=certs/cert.pem \
+CRAFT_RPC_TLS_KEY=certs/key.pem \
+bun run packages/server/src/index.ts
+```
+
+The server will now print `CRAFT_SERVER_URL=wss://<your-public-ip>:9100`.
+
+### Connect the desktop app over wss://
+
+```bash
+CRAFT_SERVER_URL=wss://203.0.113.5:9100 \
+CRAFT_SERVER_TOKEN=<token> \
+bun run electron:start
+```
+
+If you used a self-signed certificate you'll need to add the CA to the desktop app's trust store, or use the CLI's `--tls-ca` flag when connecting programmatically.
+
+<Tip>
+  For production deployments, use a certificate issued by a trusted CA (for example, Let's Encrypt via Certbot) or terminate TLS at a reverse proxy such as Caddy or nginx. Both approaches avoid the self-signed certificate trust issue entirely.
+</Tip>
+
+## Keeping the server alive
+
+The server process exits if the terminal closes. Use a process manager to keep it running in the background.
+
+<CardGroup cols={2}>
+  <Card title="systemd (Linux)" icon="gear">
+    Create `/etc/systemd/system/craft-agents.service`, set `ExecStart` to your start command with all environment variables, then run `systemctl enable --now craft-agents`.
+  </Card>
+  <Card title="tmux / screen" icon="terminal">
+    Start the server inside a `tmux` or `screen` session so it survives SSH disconnects:
+    ```bash
+    tmux new -s craft-agents
+    CRAFT_SERVER_TOKEN=<token> bun run packages/server/src/index.ts
+    # Detach with Ctrl+B, D
+    ```
+  </Card>
+</CardGroup>
+
+## Security
+
+<Warning>
+  `CRAFT_SERVER_TOKEN` is the **only** credential protecting your server. Anyone who knows the token can connect and control all sessions and tools. Treat it like a password: generate it with a cryptographically secure source (`openssl rand -hex 32`), never commit it to version control, and rotate it if you believe it has been compromised.
+</Warning>
+
+- Always use TLS (`wss://`) when the server is reachable from the internet.
+- Restrict inbound access to port `9100` using your firewall or cloud security group when possible.
+- Use `CRAFT_RPC_HOST=0.0.0.0` only when you actually need remote access; leave it at `127.0.0.1` for local-only setups.

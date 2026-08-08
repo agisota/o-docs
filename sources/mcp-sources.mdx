@@ -1,0 +1,229 @@
+---
+title: "MCP Sources: Connect via Model Context Protocol"
+sidebarTitle: "MCP Sources"
+description: "MCP sources connect Craft Agents to any MCP-compatible server via HTTP OAuth or stdio transport. Includes Linear, GitHub, and Craft document tools."
+---
+
+MCP (Model Context Protocol) sources give your agent access to structured tool sets exposed by an MCP-compatible server. The server declares a list of tools — search issues, create a PR, run a web search — and the agent can invoke them directly during a session. MCP is the richest integration type: tools are self-describing, typed, and designed for agent use from the ground up.
+
+## Two transport modes
+
+<Tabs>
+  <Tab title="HTTP (remote server)">
+    The agent connects to a hosted MCP server over HTTPS. Authentication is typically handled via OAuth — the server issues a token after you sign in, and Craft Agents stores it securely. This is the recommended approach for SaaS services that publish an MCP endpoint.
+
+    **Best for:** Linear, GitHub, Notion, and any service that hosts its own MCP server.
+  </Tab>
+  <Tab title="Stdio (local process)">
+    The agent launches a local command — an `npx` package, a Python script, a compiled binary — and communicates with it over standard I/O. No network connection is required. The process runs on your machine and exits when the session ends.
+
+    **Best for:** Brave Search, filesystem tools, memory servers, or any custom MCP server you run locally.
+  </Tab>
+</Tabs>
+
+## HTTP MCP source
+
+The simplest HTTP source points at a URL and declares an auth type. This example connects to Linear via OAuth:
+
+```json
+{
+  "id": "linear_a1b2c3d4",
+  "name": "Linear",
+  "slug": "linear",
+  "enabled": true,
+  "type": "mcp",
+  "icon": "https://linear.app/favicon.ico",
+  "tagline": "Project management and issue tracking",
+  "mcp": {
+    "url": "https://mcp.linear.app",
+    "authType": "oauth"
+  }
+}
+```
+
+After the agent creates this file it calls `source_oauth_trigger` to open the OAuth consent screen. Once you approve, the token is stored encrypted and refreshed automatically.
+
+**MCP auth types:**
+
+| `authType` | When to use |
+|------------|-------------|
+| `oauth` | Service hosts an OAuth-protected MCP endpoint (Linear, most SaaS) |
+| `bearer` | You have a personal access token or API key (GitHub PAT) |
+| `none` | Server is public or handles auth at the network level |
+
+## Stdio MCP source
+
+Stdio sources run a local command. This example launches the Brave Search MCP server via `npx` and passes an API key via environment variable:
+
+```json
+{
+  "id": "brave_a1b2c3d4",
+  "name": "Brave Search",
+  "slug": "brave",
+  "type": "mcp",
+  "icon": "https://brave.com/favicon.ico",
+  "tagline": "Real-time web search via Brave",
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+    "env": {
+      "BRAVE_API_KEY": "your-key"
+    },
+    "authType": "none"
+  }
+}
+```
+
+<Note>
+Sensitive environment variables from your shell — such as `ANTHROPIC_API_KEY` or `GITHUB_TOKEN` — are automatically stripped before the subprocess starts. Pass only the variables the MCP server needs via the `env` field.
+</Note>
+
+## Path variables
+
+Hardcoded absolute paths break when you move to a new machine or share a config with a teammate. Use path variables instead — they are expanded automatically when the source is loaded.
+
+| Variable | Resolves to | Example use |
+|----------|-------------|-------------|
+| `~` | Home directory | `~/scripts/my-server` |
+| `${HOME}` | Home directory | `${HOME}/.crawl4ai/venv/bin/python` |
+| `${CRAFT_CONFIG_DIR}` | Craft Agent config dir (default `~/.craft-agent`) | `${CRAFT_CONFIG_DIR}/servers/my-mcp` |
+| `${WORKSPACE}` | Current workspace root | `${WORKSPACE}/mcp-servers/custom` |
+| `${SOURCE_DIR}` | This source's own folder | `${SOURCE_DIR}/server/index.js` |
+
+Variables are expanded in `command`, each entry in `args`, and each value in `env`. An example that keeps a Python-based MCP server portable:
+
+```json
+{
+  "type": "mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "${HOME}/.crawl4ai/venv/bin/python",
+    "args": ["-m", "crawler_agent.mcp_server"],
+    "env": {
+      "PYTHONPATH": "${HOME}/.crawl4ai/crawl4ai-mcp-server"
+    },
+    "authType": "none"
+  }
+}
+```
+
+And one that ships the server script inside the source folder itself:
+
+```json
+{
+  "type": "mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": ["${SOURCE_DIR}/server/index.js"],
+    "authType": "none"
+  }
+}
+```
+
+## Platform overrides
+
+Some commands differ by operating system — for example, Windows requires `npx.cmd` instead of `npx`. Use the `platform` block to override `command`, `args`, or `env` per platform. Keys follow Node.js `process.platform` values (`win32`, `darwin`, `linux`).
+
+- **`command`** — replaces the default command
+- **`args`** — replaces the default args entirely
+- **`env`** — merges on top of the default env (not a full replacement)
+
+```json
+{
+  "type": "mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+    "authType": "none",
+    "platform": {
+      "win32": {
+        "command": "npx.cmd"
+      }
+    }
+  }
+}
+```
+
+A more involved example with platform-specific paths and environment variables:
+
+```json
+{
+  "type": "mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "dart",
+    "args": ["${SOURCE_DIR}/server/main.dart"],
+    "env": {
+      "DART_SDK": "${HOME}/.dart-sdk"
+    },
+    "authType": "none",
+    "platform": {
+      "win32": {
+        "command": "dart.exe",
+        "env": {
+          "DART_SDK": "C:\\tools\\dart-sdk"
+        }
+      },
+      "darwin": {
+        "env": {
+          "DART_SDK": "/opt/homebrew/opt/dart"
+        }
+      }
+    }
+  }
+}
+```
+
+Path variables like `${HOME}` and `${SOURCE_DIR}` are expanded inside platform override blocks exactly the same as in the default fields.
+
+## Explore mode permissions
+
+Explore mode is a read-only permission level that prevents the agent from making any changes. Each source can declare which of its MCP tools are safe to call in Explore mode via `permissions.json`.
+
+Patterns in `permissions.json` are automatically scoped to the source — you write a short pattern like `list` and the system converts it to `mcp__<sourceSlug>__.*list` internally, preventing one source's rules from leaking into another.
+
+```json
+{
+  "allowedMcpPatterns": [
+    { "pattern": "list", "comment": "All list operations" },
+    { "pattern": "get", "comment": "All get/read operations" },
+    { "pattern": "search", "comment": "All search operations" },
+    { "pattern": "find", "comment": "All find operations" }
+  ]
+}
+```
+
+<Tip>
+When setting up a new MCP source, connect first, list the server's available tools, identify the read-only ones, then write `permissions.json`. That way Explore mode works without any manual approval prompts.
+</Tip>
+
+## Setting up an MCP source
+
+<Steps>
+  <Step title="Create config.json">
+    Ask your agent to add the source ("Add Linear as a source") or write `config.json` manually in `~/.craft-agent/workspaces/{id}/sources/{slug}/`. Include `id`, `name`, `slug`, `type: "mcp"`, and the `mcp` block.
+  </Step>
+  <Step title="Run source_test">
+    The agent runs `source_test` automatically after creating the config. This validates the schema, downloads and caches the icon, checks connectivity, and flips `enabled: true` if everything passes.
+  </Step>
+  <Step title="Authenticate">
+    After validation succeeds, the agent triggers the appropriate auth flow:
+    - OAuth sources → opens the OAuth consent screen
+    - Bearer sources → prompts you to enter your personal access token
+  </Step>
+  <Step title="Write permissions.json">
+    List the server's tools, identify the read-only ones, and create `permissions.json` so the source works fully in Explore mode. The agent handles this step automatically during conversational setup.
+  </Step>
+</Steps>
+
+## Common MCP providers
+
+| Service | Transport | Auth | Notes |
+|---------|-----------|------|-------|
+| Linear | HTTP | OAuth | URL: `https://mcp.linear.app` |
+| GitHub | HTTP | Bearer (PAT) | URL: `https://api.githubcopilot.com/mcp/` — OAuth will fail, PAT required |
+| Brave Search | Stdio (`npx`) | None (API key in env) | Package: `@modelcontextprotocol/server-brave-search` |
+| Memory | Stdio (`npx`) | None | Package: `@modelcontextprotocol/server-memory` |

@@ -1,0 +1,75 @@
+---
+title: "Understanding Sessions in Craft Agents"
+sidebarTitle: "Sessions"
+description: "Sessions are individual AI conversations in Craft Agents. Learn how to create, manage, and organise sessions with labels, statuses, and flags."
+---
+
+A session is a single, self-contained conversation with the AI agent. Every message you send, every file the agent reads or edits, and the full tool-use history are all recorded within that session. Sessions live inside a [workspace](/concepts/workspaces) and are tied to the project directory that workspace points to — so the agent always knows where it is and what it's working on.
+
+## Session status workflow
+
+Every session moves through a Kanban-style status pipeline that helps you track work from idea to completion. You can move a session forward or backward at any time by clicking the status badge in the session list.
+
+| Status | Meaning |
+|---|---|
+| **Todo** | The session has been created but work hasn't started yet. Use this to queue up tasks. |
+| **In Progress** | The agent is actively working, or you are mid-conversation. |
+| **Needs Review** | Work is done but you need to check the result before signing off. |
+| **Done** | The task is complete. Sessions in this state are candidates for archiving. |
+
+<Tip>
+  You can customise the available statuses for each workspace. Ask the agent "add a Blocked status to this workspace" and it will update the status configuration for you.
+</Tip>
+
+## Labels
+
+Labels are free-form tags you attach to a session to make it easier to find and filter later. A session can have multiple labels at the same time.
+
+Common uses for labels include:
+
+- Grouping sessions by feature branch (`feat/auth`, `feat/payments`)
+- Marking sessions by team or owner (`backend`, `design`)
+- Flagging work type (`research`, `refactor`, `bug`)
+
+To add a label, open the session context menu (right-click the session in the list) and choose **Add Label**. You can also ask the agent "label this session as urgent" and it will apply the label immediately.
+
+<Note>
+  Labels can also trigger [automations](/guides/automations). For example, you can configure an automation that fires whenever the `urgent` label is added to any session in the workspace.
+</Note>
+
+## Flagging sessions
+
+Flagging is a quick way to mark a session as a priority without adding a formal label. Flagged sessions are visually highlighted in the session list so they stand out at a glance.
+
+To flag a session, hover over it in the session list and click the flag icon, or right-click and choose **Flag Session**. Click the icon again to unflag.
+
+## Archiving sessions
+
+Archiving moves a completed session out of your main inbox without deleting it. The full conversation history is preserved and searchable; the session simply no longer appears in your active list.
+
+To archive a session, right-click it and choose **Archive**, or move its status to **Done** and use the **Archive** action from the context menu. To view archived sessions, toggle the **Archived** filter at the top of the session list.
+
+## Other session actions
+
+Beyond status changes and labelling, you can perform the following actions on any session:
+
+- **Cancel** — Stop an in-progress agent run immediately. The agent halts tool execution and any pending tool calls are abandoned.
+- **Export** — Save the session as a JSON file containing the full message and tool-use history. Useful for sharing, auditing, or importing into another workspace.
+- **Import** — Load a previously exported session JSON file into the current workspace.
+- **Rename** — Override the AI-generated session title with a name of your choice.
+- **Delete** — Permanently remove a session and all its history. This action cannot be undone.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+N` | Create a new session |
+| `Cmd+1` | Focus the sidebar |
+| `Cmd+2` | Focus the session list |
+| `Cmd+3` | Focus the chat area |
+| `Enter` | Send the current message |
+| `Shift+Enter` | Insert a new line without sending |
+
+<Tip>
+  Press `Cmd+/` at any time to open the full keyboard shortcuts reference dialog.
+</Tip>

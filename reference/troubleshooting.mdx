@@ -1,0 +1,220 @@
+---
+title: "Troubleshoot Common Craft Agents Issues"
+sidebarTitle: "Troubleshooting"
+description: "Solutions for common Craft Agents problems: connection errors, authentication failures, TLS issues, and how to enable debug logging."
+---
+
+Craft Agents is a desktop-first application with optional remote server and CLI components, so problems can surface in a few different layers. This page walks through the most common symptoms, their root causes, and the fastest path to a fix. If nothing here resolves your issue, see [Getting help](#getting-help) at the bottom of the page.
+
+## Common issues
+
+<AccordionGroup>
+  <Accordion title="Can't connect to the server">
+    If the desktop app or CLI reports a connection timeout, the server is either not running or the URL is wrong.
+
+    **Things to check:**
+
+    - Confirm the headless server process is running. If you started it manually, check the terminal where you launched it for any startup errors.
+    - Verify the URL scheme matches your setup — use `ws://` for unencrypted local connections and `wss://` when TLS is enabled.
+    - Make sure the port (default `9100`) is not blocked by a firewall or occupied by another process.
+    - If connecting to a remote host, confirm the server is bound to `0.0.0.0` rather than `127.0.0.1`:
+
+    ```bash
+    CRAFT_RPC_HOST=0.0.0.0 CRAFT_SERVER_TOKEN=<token> bun run packages/server/src/index.ts
+    ```
+
+    Run a quick connectivity check with the CLI after the server is reachable:
+
+    ```bash
+    craft-cli --url ws://127.0.0.1:9100 --token <token> ping
+    ```
+  </Accordion>
+
+  <Accordion title="AUTH_FAILED error">
+    This error means the token your client is sending does not match the token the server expects.
+
+    **Things to check:**
+
+    - Confirm that `CRAFT_SERVER_TOKEN` is set to the same value on both the server side and the client side.
+    - If you regenerated the token on the server without restarting the desktop app, reconnect with the new token.
+    - Watch out for stray whitespace or newline characters if you copied the token from a terminal or a secrets manager.
+
+    ```bash
+    # Export once so both the server and CLI share the same value
+    export CRAFT_SERVER_TOKEN=$(openssl rand -hex 32)
+    ```
+
+    <Warning>
+      Never commit `CRAFT_SERVER_TOKEN` to version control. Store it in an environment file or a secrets manager.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="PROTOCOL_VERSION_UNSUPPORTED">
+    This error appears when the CLI and the server are running incompatible versions of the Craft Agents protocol.
+
+    **Fix:** Update both the CLI and the server to the same release. If you installed via the one-line script, re-run it to pull the latest version:
+
+    ```bash
+    # macOS / Linux
+    curl -fsSL https://agents.craft.do/install-app.sh | bash
+    ```
+
+    ```powershell
+    # Windows (PowerShell)
+    irm https://agents.craft.do/install-app.ps1 | iex
+    ```
+
+    After updating, verify versions agree:
+
+    ```bash
+    craft-cli versions
+    ```
+  </Accordion>
+
+  <Accordion title="WebSocket TLS / wss:// errors">
+    When connecting to a server over `wss://` with a self-signed certificate, the CLI rejects the connection because the certificate authority is not trusted by default.
+
+    **Fix:** Pass the path to your CA certificate with the `--tls-ca` flag:
+
+    ```bash
+    craft-cli --url wss://server.example.com:9100 --tls-ca /path/to/ca.pem ping
+    ```
+
+    You can also set the path once as an environment variable so you don't have to repeat it:
+
+    ```bash
+    export CRAFT_TLS_CA=/path/to/ca.pem
+    ```
+
+    If you need to generate a self-signed certificate for development, use the helper script in the repo:
+
+    ```bash
+    ./scripts/generate-dev-cert.sh
+    # Creates certs/cert.pem and certs/key.pem (valid 365 days)
+    ```
+
+    <Note>
+      For production deployments, use a certificate from a trusted CA (for example, Let's Encrypt) or terminate TLS at a reverse proxy such as nginx or Caddy. Trusted certificates work without `--tls-ca`.
+    </Note>
+  </Accordion>
+
+  <Accordion title="No workspace available">
+    The CLI reports "No workspace available" when no workspace has been created yet.
+
+    **Fix:** Create a workspace first — either through the desktop app's onboarding flow, or by registering a directory with the CLI `run` command:
+
+    ```bash
+    craft-cli run --workspace-dir ./my-project "Hello"
+    ```
+
+    Once a workspace exists, all other CLI commands that require `--workspace` can auto-detect it.
+  </Accordion>
+
+  <Accordion title="Agent session hangs or doesn't respond">
+    Occasionally a session can stall mid-response — for example, if a tool call times out or the LLM connection is interrupted.
+
+    **From the desktop app:** Press **Cmd+.** (or **Ctrl+.** on Windows/Linux) to cancel the current operation.
+
+    **From the CLI:** Use the `cancel` command with the session ID:
+
+    ```bash
+    craft-cli cancel <session-id>
+    ```
+
+    If the session remains unresponsive after cancellation, delete and recreate it:
+
+    ```bash
+    craft-cli session delete <session-id>
+    craft-cli session create --name "New session"
+    ```
+  </Accordion>
+
+  <Accordion title="Source not connecting">
+    If a source (MCP server, REST API, or local filesystem) fails to connect or authenticate, work through these steps:
+
+    1. **Run the built-in source test.** Ask the agent to run `source_test` for the affected source, or check the source configuration in the desktop app's Sources panel.
+    2. **Check credentials.** Re-enter or rotate the API key / OAuth token for the source. Credentials are stored encrypted at `~/.craft-agent/credentials.enc`.
+    3. **Verify `testEndpoint` config.** For REST API sources, confirm the `testEndpoint` in the source's `config.json` returns a successful response.
+    4. **Check environment variable filtering.** Craft Agents intentionally blocks certain sensitive env vars (such as `ANTHROPIC_API_KEY`, `AWS_*`, `GITHUB_TOKEN`) from being passed to MCP subprocess environments. If a local MCP server needs one of these variables, add it explicitly to the source's `env` field in its config.
+
+    ```json
+    {
+      "env": {
+        "MY_SERVICE_TOKEN": "your-token-here"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Enable debug mode
+
+Debug mode turns on verbose logging and writes detailed output to a log file. Launch the packaged desktop app with the `-- --debug` flag (note the double-dash separator before `--debug`):
+
+<Steps>
+  <Step title="Launch with debug flag">
+    **macOS:**
+
+    ```bash
+    /Applications/Craft\ Agents.app/Contents/MacOS/Craft\ Agents -- --debug
+    ```
+
+    **Windows (PowerShell):**
+
+    ```powershell
+    & "$env:LOCALAPPDATA\Programs\@craft-agentelectron\Craft Agents.exe" -- --debug
+    ```
+
+    **Linux:**
+
+    ```bash
+    ./craft-agents -- --debug
+    ```
+  </Step>
+
+  <Step title="Reproduce the problem">
+    Perform the action that triggers the issue so the relevant events are captured in the log.
+  </Step>
+
+  <Step title="Find the log file">
+    Logs are written to:
+
+    | Platform | Log location |
+    |----------|-------------|
+    | macOS | `~/Library/Logs/@craft-agent/electron/main.log` |
+    | Windows | `%APPDATA%\@craft-agent\electron\logs\main.log` |
+    | Linux | `~/.config/@craft-agent/electron/logs/main.log` |
+
+    You can also set `CRAFT_DEBUG=true` as an environment variable on the server process to enable server-side verbose logging independently of the desktop app.
+  </Step>
+</Steps>
+
+## Validate server health
+
+The CLI includes a 21-step integration test that exercises the full server lifecycle — including creating a temporary session, invoking a tool, creating and mentioning a source, and cleaning up after itself. Run it against a live server or let it spawn one automatically:
+
+```bash
+# Against a running server
+craft-cli --validate-server --url ws://127.0.0.1:9100 --token <token>
+
+# Self-contained (auto-spawns a local server)
+craft-cli --validate-server
+```
+
+A passing run confirms that authentication, workspace access, session creation, tool execution, source management, and skill management are all working correctly. Use `--json` to get machine-readable output suitable for CI:
+
+```bash
+craft-cli --validate-server --json
+```
+
+<Warning>
+  `--validate-server` mutates workspace state — it creates and deletes a temporary session, source, and skill. Run it on a development workspace, not a production one.
+</Warning>
+
+## Getting help
+
+If you've worked through the steps above and the problem persists, open an issue on GitHub:
+
+- **[github.com/lukilabs/craft-agents-oss/issues](https://github.com/lukilabs/craft-agents-oss/issues)**
+
+Include the relevant log output (with any secrets redacted), the platform and version you're running, and the steps to reproduce the problem.

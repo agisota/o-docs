@@ -1,0 +1,71 @@
+---
+title: "Sources: Connect Craft Agents to Any Service"
+sidebarTitle: "Overview"
+description: "Sources let Craft Agents connect to MCP servers, REST APIs, and local filesystems. Add a source once and your agent can use it in any session."
+---
+
+Sources are the bridges between Craft Agents and the outside world. Once you connect a source — whether that's a project management tool, a REST API, or a folder on your machine — every session in that workspace can reach it. You configure a source once and your agent handles the rest: discovering available tools, managing authentication tokens, and keeping the connection healthy across sessions.
+
+## Three source types
+
+Craft Agents supports three kinds of sources. Each covers a different way that external services expose their capabilities.
+
+<CardGroup cols={3}>
+  <Card title="MCP Sources" icon="plug" href="/sources/mcp-sources">
+    Connect to any Model Context Protocol server over HTTP or as a local stdio process. Ideal for rich, tool-oriented integrations like Linear, GitHub, and Brave Search.
+  </Card>
+  <Card title="API Sources" icon="cloud" href="/sources/api-sources">
+    Connect to any REST API with bearer tokens, API keys, OAuth, basic auth, or query parameters. Works with Gmail, Slack, Exa, Datadog, and any custom API.
+  </Card>
+  <Card title="Local Sources" icon="folder" href="/sources/local-sources">
+    Give the agent access to a folder on your machine — an Obsidian vault, a project directory, or any reference folder. Path variables keep configs portable.
+  </Card>
+</CardGroup>
+
+## How sources are stored
+
+Each source lives in its own folder under your workspace directory:
+
+```
+~/.craft-agent/workspaces/{workspaceId}/sources/{sourceSlug}/
+```
+
+Inside that folder, up to four files control the source's behaviour:
+
+| File | Required | Purpose |
+|------|----------|---------|
+| `config.json` | Yes | Connection settings, auth type, URLs, and credentials metadata |
+| `guide.md` | No | Usage notes the agent reads at session start to understand the source's scope and quirks |
+| `permissions.json` | No | Fine-grained rules that control what the agent can do in Explore mode |
+| `icon.svg` / `icon.png` | No | Source icon shown in the UI; auto-downloaded if you supply a URL in `config.json` |
+
+## How to add a source
+
+The fastest way to add a source is simply to ask your agent:
+
+> "Add Linear as a source."
+
+The agent searches for setup guides, reads the service's documentation, creates the `config.json`, writes a tailored `guide.md`, sets up `permissions.json` for safe Explore-mode use, validates the configuration, and walks you through authentication — all in one conversation.
+
+You can also paste an existing MCP config JSON (Claude Desktop or Claude Code format) and the agent will convert and register it automatically.
+
+<Tip>
+You can reference a newly added source mid-conversation with `@sourceName` — no restart needed. Changes take effect instantly.
+</Tip>
+
+## Popular integrations
+
+| Service | Source type | Auth method | What you can do |
+|---------|-------------|-------------|-----------------|
+| Linear | MCP | OAuth | Manage issues, sprints, and projects |
+| GitHub | MCP | Bearer (PAT) | Browse repos, PRs, issues, and commits |
+| Gmail | API | Google OAuth | Read, search, and send email |
+| Google Calendar | API | Google OAuth | View and create calendar events |
+| Slack | API | Slack OAuth | Read channels, send messages |
+| Microsoft / Outlook | API | Microsoft OAuth | Email, calendar, and Teams access |
+| Brave Search | MCP (stdio) | API key (env var) | Real-time web search |
+| Local filesystem | Local | None | Read/write files on your machine |
+
+<Note>
+Google services (Gmail, Calendar, Drive, YouTube) require you to provide your own OAuth client credentials from the Google Cloud Console. The agent will prompt you for them during setup.
+</Note>

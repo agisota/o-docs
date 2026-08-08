@@ -1,0 +1,52 @@
+---
+title: "Permission Modes: Control What Your Agent Can Do"
+sidebarTitle: "Permission Modes"
+description: "Craft Agents has three permission modes that control whether the AI can modify files, run commands, and call APIs without asking you first."
+---
+
+Permission modes give you direct control over how much autonomy the agent has during a session. At one end of the spectrum the agent can only read — it cannot touch a single file. At the other end it runs fully autonomously, approving its own tool calls without ever pausing to ask you. The middle ground — prompt before each action — is the default for everyday use. You can switch modes at any moment without restarting the session.
+
+## The three modes
+
+| Mode key | Display name | Behaviour |
+|---|---|---|
+| `safe` | **Explore** | Read-only. The agent can browse files, search, and read content, but all write operations, shell commands, and API calls that modify state are blocked. |
+| `ask` | **Ask to Edit** | Prompts for approval before each tool use. You see exactly what the agent wants to do and can approve or deny individual actions. This is the **default** mode. |
+| `allow-all` | **Auto** | Auto-approves every tool call. The agent runs without interruption — file edits, shell commands, and API calls all execute immediately. |
+
+## How to switch modes
+
+You can change the permission mode in two ways:
+
+<Tabs>
+  <Tab title="Keyboard shortcut">
+    Press **Shift+Tab** while the chat area is focused to cycle through the three modes in order: `safe` → `ask` → `allow-all` → `safe` → …
+
+    The current mode is always shown in the mode indicator at the bottom of the chat input bar.
+  </Tab>
+  <Tab title="Mode indicator (UI)">
+    Click the mode indicator button at the bottom of the chat input bar. A small picker appears listing all three modes. Click the one you want to activate it immediately.
+  </Tab>
+</Tabs>
+
+## When to use each mode
+
+<CardGroup cols={3}>
+  <Card title="Explore (safe)" icon="magnifying-glass">
+    Use this when you want to understand an unfamiliar codebase without any risk of accidental changes. Great for onboarding, audits, or generating documentation from existing code.
+  </Card>
+  <Card title="Ask to Edit (ask)" icon="hand">
+    The right choice for most day-to-day development work. You stay in control of every change, and the approval prompts double as a natural review step before edits land on disk.
+  </Card>
+  <Card title="Auto (allow-all)" icon="bolt">
+    Best for long-running, well-scoped tasks you trust completely — for example, reformatting an entire codebase, running a migration script, or executing a build pipeline. Combine with a limited workspace scope to reduce risk.
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Auto mode runs all shell commands and file edits without asking.** A single session in `allow-all` mode can create, overwrite, or delete files and execute arbitrary shell commands across your entire workspace directory. Only use Auto mode for tasks where you have reviewed the plan and trust the outcome, or when running against a disposable environment.
+</Warning>
+
+## Per-source permission rules
+
+In addition to the session-wide mode, you can set fine-grained permission rules on individual sources — for example, always requiring approval before the agent posts to Slack, even when the session is in Auto mode. See [Sources overview](/sources/overview) for details.

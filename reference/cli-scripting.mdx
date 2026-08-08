@@ -1,0 +1,224 @@
+---
+title: "Scripting with craft-cli in CI and Shell"
+sidebarTitle: "Scripting"
+description: "Use craft-cli in shell scripts and CI pipelines with --json output, jq parsing, and session lifecycle management."
+---
+
+`craft-cli` is designed to be scriptable. Every command supports machine-readable JSON output, sessions have a well-defined lifecycle you can manage programmatically, and the `run` command lets you drop an AI agent into any CI pipeline without standing up a persistent server. This page covers the patterns you need to integrate `craft-cli` reliably into shell scripts and automated workflows.
+
+---
+
+## The --json Flag
+
+Pass `--json` to any command to get raw JSON output instead of the default human-readable format. This makes it straightforward to pipe results into `jq` or any other JSON processor.
+
+```bash
+# Human-readable (default)
+craft-cli workspaces
+
+# Machine-readable JSON
+craft-cli --json workspaces
+
+# Parse with jq
+craft-cli --json workspaces | jq '.[].name'
+craft-cli --json sessions | jq 'length'
+```
+
+---
+
+## Basic Scripting Pattern
+
+The typical lifecycle for a scripted agent session is: create → send → clean up. Here's a complete example:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+export CRAFT_SERVER_URL=ws://localhost:9100
+export CRAFT_SERVER_TOKEN=your-token
+
+# Create a session and capture its ID
+SESSION_ID=$(craft-cli --json session create --name "CI Run" | jq -r '.id')
+echo "Session: $SESSION_ID"
+
+# Run the agent and stream its response
+craft-cli send "$SESSION_ID" "Run the test suite and summarize results"
+
+# Clean up the session when done
+craft-cli session delete "$SESSION_ID"
+```
+
+<Note>
+  `set -euo pipefail` causes the script to exit immediately on any error. Because `craft-cli send` exits with code `1` on an `error` event and `130` on an `interrupted` event, this pattern ensures failures propagate correctly to your CI system.
+</Note>
+
+---
+
+## Working with Multiple Workspaces
+
+Use `--json` and `jq` to iterate over all workspaces and inspect them programmatically:
+
+```bash
+# Get all workspace IDs
+WORKSPACES=$(craft-cli --json workspaces | jq -r '.[].id')
+
+# Count sessions per workspace
+for ws in $WORKSPACES; do
+  COUNT=$(craft-cli --json --workspace "$ws" sessions | jq length)
+  echo "$ws: $COUNT sessions"
+done
+```
+
+---
+
+## Piping stdin
+
+Both `send` and `run` accept prompts from stdin, so you can pass file contents or generated text directly to the agent:
+
+```bash
+# Send file contents as context
+cat README.md | craft-cli send "$SESSION_ID" --stdin
+
+# Run with a piped prompt
+echo "Summarize the key points" | craft-cli run
+
+# Combine file content with a question
+cat error.log | craft-cli run "What's causing these errors?"
+```
+
+---
+
+## TLS and wss:// Connections
+
+When connecting to a remote server over a secure WebSocket, use `wss://` in the URL. For publicly trusted certificates (Let's Encrypt, etc.), no extra configuration is needed. For self-signed certificates, point `--tls-ca` at your CA bundle:
+
+```bash
+# Trusted certificate
+craft-cli --url wss://server.example.com:9100 ping
+
+# Self-signed certificate
+craft-cli --url wss://server.example.com:9100 \
+  --tls-ca /path/to/ca.pem \
+  ping
+```
+
+You can also set `CRAFT_TLS_CA` as an environment variable so you don't need to repeat the flag on every command:
+
+```bash
+export CRAFT_SERVER_URL=wss://server.example.com:9100
+export CRAFT_SERVER_TOKEN=your-token
+export CRAFT_TLS_CA=/path/to/ca.pem
+
+craft-cli ping
+craft-cli sessions
+```
+
+---
+
+## CI/CD with the run Command
+
+For CI pipelines, `craft-cli run` is often the best choice — it requires no persistent server, no pre-configured workspace, and exits with a meaningful status code when done.
+
+```bash
+# Review a diff and generate a PR description
+craft-cli run \
+  --workspace-dir . \
+  --provider anthropic \
+  --api-key $ANTHROPIC_API_KEY \
+  "Review the diff and write a summary for the PR description"
+```
+
+A more complete CI job might look like this:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Generate a PR description from the current diff
+git diff origin/main...HEAD > /tmp/pr.diff
+
+craft-cli run \
+  --workspace-dir . \
+  --provider anthropic \
+  --api-key "$ANTHROPIC_API_KEY" \
+  --output-format text \
+  "$(cat /tmp/pr.diff)
+
+Based on the diff above, write a concise PR description with a summary and a list of key changes."
+```
+
+<Tip>
+  Use `--output-format stream-json` when you need to capture individual events (text deltas, tool calls) rather than the final concatenated text. This is useful for CI jobs that post structured output to a dashboard or notification system.
+</Tip>
+
+---
+
+## Parsing AI Responses Programmatically
+
+When you need to process the AI response token-by-token or extract structured data, use `--output-format stream-json`. Each line of output is a newline-delimited JSON object:
+
+```bash
+craft-cli run \
+  --output-format stream-json \
+  "List the five most important files in this repo as JSON" \
+| while IFS= read -r line; do
+    TYPE=$(echo "$line" | jq -r '.type')
+    if [[ "$TYPE" == "text_delta" ]]; then
+      echo "$line" | jq -r '.text'
+    fi
+  done
+```
+
+Or buffer the full response and parse it after the run completes:
+
+```bash
+RESPONSE=$(
+  craft-cli run --output-format stream-json "Summarize this repo" \
+  | jq -r 'select(.type == "text_delta") | .text' \
+  | tr -d '\n'
+)
+
+echo "Summary: $RESPONSE"
+```
+
+---
+
+## Common Patterns at a Glance
+
+<CardGroup cols={2}>
+  <Card title="Capture a session ID" icon="id-card">
+    ```bash
+    SESSION_ID=$(
+      craft-cli --json session create \
+        --name "My Session" \
+      | jq -r '.id'
+    )
+    ```
+  </Card>
+
+  <Card title="Check server health in CI" icon="heart-pulse">
+    ```bash
+    craft-cli ping \
+      && echo "Server OK" \
+      || { echo "Server unreachable"; exit 1; }
+    ```
+  </Card>
+
+  <Card title="Self-contained AI step" icon="play">
+    ```bash
+    craft-cli run \
+      --workspace-dir . \
+      --api-key $ANTHROPIC_API_KEY \
+      "Describe what changed in the last commit"
+    ```
+  </Card>
+
+  <Card title="Stream-json for parsing" icon="brackets-curly">
+    ```bash
+    craft-cli run \
+      --output-format stream-json \
+      "Audit the package.json" \
+    | jq 'select(.type=="text_delta")'
+    ```
+  </Card>
+</CardGroup>

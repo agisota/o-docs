@@ -1,0 +1,288 @@
+---
+title: "API Sources: Connect REST APIs to Craft Agents"
+sidebarTitle: "API Sources"
+description: "API sources connect Craft Agents to any REST API with bearer, header, query, basic, or OAuth authentication. Supports auto token refresh."
+---
+
+API sources turn any REST API into a set of tools your agent can call. You describe the base URL and how to authenticate, and the agent handles the rest — constructing requests, injecting credentials, parsing responses, and retrying after token refreshes. API sources work with virtually any HTTP service, from well-known platforms like Slack and Gmail to your own internal APIs.
+
+## When to use API vs MCP
+
+Choose an API source when the service does not publish an MCP server but does have a documented REST API. Choose an MCP source when the service offers an MCP endpoint — it will provide richer, more structured tooling.
+
+## The `config.json` structure
+
+All API sources share a common shape. The `api` block holds the connection details:
+
+```json
+{
+  "id": "my-api_a1b2c3d4",
+  "name": "My Service",
+  "slug": "my-api",
+  "enabled": true,
+  "type": "api",
+  "icon": "https://example.com/favicon.ico",
+  "tagline": "Short description for agent context",
+  "api": {
+    "baseUrl": "https://api.example.com/v1/",
+    "authType": "bearer",
+    "testEndpoint": {
+      "method": "GET",
+      "path": "me"
+    }
+  }
+}
+```
+
+<Warning>
+`baseUrl` **must** end with a trailing slash: `https://api.example.com/v1/`
+
+`testEndpoint.path` must **not** start with a leading slash: `me`, not `/me`
+
+Getting either wrong causes URL construction to break silently.
+</Warning>
+
+## Auth types
+
+### Bearer token
+
+Sends credentials as `Authorization: Bearer {token}`. Use this for any API that issues API keys or access tokens presented in the Authorization header.
+
+```json
+{
+  "id": "openai_a1b2c3d4",
+  "name": "OpenAI",
+  "slug": "openai",
+  "type": "api",
+  "api": {
+    "baseUrl": "https://api.openai.com/v1/",
+    "authType": "bearer",
+    "testEndpoint": {
+      "method": "GET",
+      "path": "models"
+    }
+  }
+}
+```
+
+### Header (single key)
+
+Sends a credential in a named header rather than `Authorization`. Common for APIs that use `x-api-key`, `X-Auth-Token`, and similar patterns.
+
+```json
+{
+  "id": "exa_a1b2c3d4",
+  "name": "Exa Search",
+  "slug": "exa",
+  "type": "api",
+  "icon": "https://exa.ai/favicon.ico",
+  "tagline": "Semantic web search",
+  "api": {
+    "baseUrl": "https://api.exa.ai/",
+    "authType": "header",
+    "headerName": "x-api-key",
+    "testEndpoint": {
+      "method": "POST",
+      "path": "search",
+      "body": {
+        "query": "test",
+        "numResults": 1
+      }
+    }
+  }
+}
+```
+
+### Header (multiple keys)
+
+Some APIs require two or more credentials in separate headers simultaneously. Use `headerNames` (an array) instead of `headerName`. Each header gets its own input field during authentication and is sent on every request.
+
+```json
+{
+  "id": "datadog_a1b2c3d4",
+  "name": "Datadog",
+  "slug": "datadog",
+  "type": "api",
+  "api": {
+    "baseUrl": "https://api.datadoghq.com/api/",
+    "authType": "header",
+    "headerNames": ["DD-API-KEY", "DD-APPLICATION-KEY"],
+    "testEndpoint": {
+      "method": "GET",
+      "path": "v1/validate"
+    }
+  }
+}
+```
+
+Common multi-header patterns: Datadog (`DD-API-KEY` + `DD-APPLICATION-KEY`), services with separate API key and signing key, applications requiring both an app credential and a user credential.
+
+### Query parameter
+
+Appends the credential as a URL query parameter. Less common in modern APIs but still used by some weather, mapping, and analytics services.
+
+```json
+{
+  "type": "api",
+  "api": {
+    "baseUrl": "https://api.weather.com/",
+    "authType": "query",
+    "queryParam": "apikey",
+    "testEndpoint": {
+      "method": "GET",
+      "path": "v1/current"
+    }
+  }
+}
+```
+
+### Basic auth
+
+Sends credentials as HTTP Basic Auth (`Authorization: Basic base64(username:password)`). Used by Jira, some Jenkins APIs, and other enterprise tools.
+
+```json
+{
+  "type": "api",
+  "api": {
+    "baseUrl": "https://your-domain.atlassian.net/rest/api/3/",
+    "authType": "basic",
+    "testEndpoint": {
+      "method": "GET",
+      "path": "myself"
+    }
+  }
+}
+```
+
+<Tip>
+Some APIs use Basic Auth but only need the username field (the API key), leaving the password empty. When the agent prompts for credentials it can mark the password as optional for these services.
+</Tip>
+
+### OAuth 2.0
+
+For APIs that use OAuth 2.0 but are not Google, Slack, or Microsoft (which have dedicated first-party OAuth flows). Two modes are available:
+
+**Auto-discovery** — if the API supports RFC 9728 (OAuth Protected Resource Metadata), just set `authType: "oauth"` and endpoints are discovered automatically. No `oauth` block needed.
+
+**Explicit config** — for APIs without standard OAuth metadata, supply the endpoints manually:
+
+```json
+{
+  "id": "github_a1b2c3d4",
+  "name": "GitHub",
+  "slug": "github",
+  "type": "api",
+  "api": {
+    "baseUrl": "https://api.github.com/",
+    "authType": "oauth",
+    "oauth": {
+      "authorizationUrl": "https://github.com/login/oauth/authorize",
+      "tokenUrl": "https://github.com/login/oauth/access_token",
+      "clientId": "Iv1.your_client_id",
+      "clientSecret": "your_client_secret",
+      "scopes": ["repo", "read:user"]
+    }
+  }
+}
+```
+
+Tokens are sent as `Authorization: Bearer {token}` and refreshed automatically when a refresh token is available.
+
+## The `testEndpoint` field
+
+Authenticated API sources must include a `testEndpoint`. It is called by `source_test` to verify your credentials actually work. Without it, the agent cannot confirm that authentication succeeded.
+
+```json
+{
+  "testEndpoint": {
+    "method": "GET",
+    "path": "v1/me",
+    "body": { }
+  }
+}
+```
+
+Choose an endpoint that:
+- Requires authentication (so a bad token fails clearly)
+- Returns quickly (health, status, or current-user endpoints are ideal)
+- Doesn't create or modify data
+
+Common patterns: `me`, `user`, `profile`, `v1/status`, `health`, `models`.
+
+## Automatic token refresh with `renewEndpoint`
+
+For non-OAuth bearer APIs that have their own token renewal endpoint, you can configure automatic refresh so the agent never has to ask you to re-authenticate.
+
+```json
+{
+  "api": {
+    "baseUrl": "https://api.example.com/",
+    "authType": "bearer",
+    "renewEndpoint": {
+      "path": "auth/refresh",
+      "method": "POST",
+      "tokenField": "access_token",
+      "expiresInField": "expires_in"
+    }
+  }
+}
+```
+
+Before each request, Craft Agents checks whether the token is expired or expiring within five minutes. If so, it calls `renewEndpoint`, extracts the new token, stores it, and proceeds. Use `{{token}}` as a placeholder anywhere in `body` or `headers` to inject the current access token:
+
+```json
+{
+  "renewEndpoint": {
+    "path": "auth/refresh",
+    "body": { "current_token": "{{token}}" },
+    "tokenField": "new_token",
+    "expiresInField": "ttl"
+  }
+}
+```
+
+**`renewEndpoint` fields:**
+
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `path` | Yes | — | Path relative to `baseUrl`, or an absolute URL |
+| `method` | No | `POST` | HTTP method |
+| `body` | No | — | Request body; use `{{token}}` for the current token |
+| `headers` | No | — | Extra headers; merged on top of defaults; supports `{{token}}` |
+| `tokenField` | No | `access_token` | Response field containing the new token |
+| `expiresInField` | No | `expires_in` | Response field containing expiry in seconds |
+| `fallbackTtlSecs` | No | — | TTL to use when the response omits expiry info |
+
+<Note>
+`renewEndpoint` is for APIs with their own token renewal mechanism. For OAuth-based APIs, use `authType: "oauth"` — OAuth refresh is handled automatically.
+</Note>
+
+## Explore mode permissions
+
+Explore mode restricts the agent to read-only operations. Use `permissions.json` to declare which API endpoints are safe in Explore mode:
+
+```json
+{
+  "allowedApiEndpoints": [
+    { "method": "GET", "path": ".*", "comment": "All GET requests are read-only" },
+    { "method": "POST", "path": "^search", "comment": "Search endpoint (read-only despite POST)" }
+  ]
+}
+```
+
+Paths are matched as regular expressions against the request path relative to `baseUrl`. Most APIs follow REST conventions where all GETs are safe — a single `.*` GET rule covers them all. Add specific POST rules only for endpoints you know are non-mutating (search, query, export).
+
+## Icon handling
+
+The `icon` field in `config.json` controls what appears in the UI:
+
+| `icon` value | Behaviour |
+|--------------|-----------|
+| Emoji, e.g. `"📊"` | Rendered as emoji text |
+| Local path, e.g. `"./icon.svg"` | Loaded from `sources/{slug}/icon.svg` |
+| URL, e.g. `"https://example.com/favicon.ico"` | Auto-downloaded and cached locally by `source_test` |
+| Omitted or `null` | Auto-discovers `icon.svg` or `icon.png` in the source folder, then falls back to the provider's favicon |
+
+<Tip>
+Set `icon` to a URL when you create a source. After `source_test` runs, the icon is cached locally so the app renders it instantly, even offline.
+</Tip>

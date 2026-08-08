@@ -1,0 +1,181 @@
+---
+title: "Craft Agents CLI: Terminal Client Overview"
+sidebarTitle: "CLI Overview"
+description: "The Craft Agents CLI connects to a running server over WebSocket, enabling automation, scripting, and headless session management from your terminal."
+---
+
+The Craft Agents CLI (`craft-cli`) is a terminal client that speaks directly to the Craft Agents WebSocket server. You can use it to manage sessions, send prompts and stream responses, list workspaces and sources, script multi-step workflows with `--json` output, and even run a self-contained prompt without any server setup at all. Whether you're automating CI pipelines, building shell scripts around agents, or just prefer the terminal, the CLI gives you full access to everything the server exposes.
+
+## Installation
+
+```bash
+# Run directly from the monorepo (requires Bun)
+bun run apps/cli/src/index.ts --help
+
+# Or create an alias for convenience
+alias craft-cli="bun run $(pwd)/apps/cli/src/index.ts"
+
+# Or link globally so craft-cli is on your PATH
+cd apps/cli && bun link
+```
+
+## Connection options
+
+The CLI resolves connection details from flags first, then falls back to environment variables. Set the environment variables once in your shell profile and skip the flags on every command.
+
+```bash
+export CRAFT_SERVER_URL=ws://127.0.0.1:9100
+export CRAFT_SERVER_TOKEN=<your-token>
+```
+
+| Flag | Env var | Default | Description |
+|---|---|---|---|
+| `--url <ws[s]://...>` | `CRAFT_SERVER_URL` | — | Server WebSocket URL |
+| `--token <secret>` | `CRAFT_SERVER_TOKEN` | — | Authentication token |
+| `--workspace <id>` | — | auto-detect | Workspace ID to operate against |
+| `--timeout <ms>` | — | `10000` | Connection request timeout |
+| `--tls-ca <path>` | `CRAFT_TLS_CA` | — | CA certificate for self-signed TLS |
+| `--json` | — | `false` | Emit raw JSON output for scripting |
+| `--send-timeout <ms>` | — | `300000` | Timeout for the `send` command (5 min) |
+
+## Command reference
+
+| Command | Description |
+|---|---|
+| `ping` | Verify connectivity — prints client ID and round-trip latency |
+| `health` | Check credential store health on the server |
+| `versions` | Show server runtime versions |
+| `workspaces` | List all workspaces |
+| `sessions` | List sessions in the active workspace |
+| `connections` | List configured LLM connections |
+| `sources` | List configured sources |
+| `session create` | Create a new session (`--name`, `--mode`) |
+| `session messages <id>` | Print full message history for a session |
+| `session delete <id>` | Permanently delete a session |
+| `send <id> <message>` | Send a message to a session and stream the AI response |
+| `cancel <id>` | Cancel in-progress processing in a session |
+| `invoke <channel> [args]` | Make a raw RPC call with optional JSON arguments |
+| `listen <channel>` | Subscribe to push events on a channel (Ctrl+C to stop) |
+| `run <prompt>` | Self-contained: spawn server, run prompt, stream response, exit |
+| `--validate-server` | Run a 21-step integration test against a server |
+
+## Common usage patterns
+
+### Pattern 1 — Interactive use against a running server
+
+Start with a quick connectivity check, then explore and manage sessions:
+
+```bash
+# Confirm the server is up and measure latency
+craft-cli ping
+
+# See what workspaces and sessions exist
+craft-cli workspaces
+craft-cli sessions
+
+# Create a session and capture the ID
+SESSION_ID=$(craft-cli --json session create --name "Refactor project" | jq -r '.id')
+
+# Send a message and stream the response live
+craft-cli send "$SESSION_ID" "Refactor the auth module to use async/await"
+```
+
+### Pattern 2 — Self-contained `run` command (no server needed)
+
+The `run` command is fully self-contained. It spawns a headless server process, creates a session, sends your prompt, streams the response, then shuts everything down. There's no separate server to start or stop — just an API key in the environment.
+
+```bash
+ANTHROPIC_API_KEY=sk-... craft-cli run "List all TODO comments in the codebase"
+```
+
+Point it at a local project directory and enable sources in a single command:
+
+```bash
+craft-cli run \
+  --workspace-dir ./my-project \
+  --source github \
+  "List all TODO comments in the codebase"
+```
+
+`run` supports multiple LLM providers via `--provider` and `--model`:
+
+```bash
+craft-cli run --provider openai --model gpt-4o "Summarize this repository"
+```
+
+### Pattern 3 — Scripting with `--json`
+
+Combine `--json` with tools like `jq` to build shell scripts that drive the agent programmatically:
+
+```bash
+# Get all workspace IDs
+WORKSPACES=$(craft-cli --json workspaces | jq -r '.[].id')
+
+# Count sessions per workspace
+for ws in $WORKSPACES; do
+  COUNT=$(craft-cli --json --workspace "$ws" sessions | jq length)
+  echo "$ws: $COUNT sessions"
+done
+
+# Create a session, run a prompt, then clean up
+SESSION_ID=$(craft-cli --json session create --name "CI Run" | jq -r '.id')
+craft-cli send "$SESSION_ID" "Run the test suite and report results"
+craft-cli session delete "$SESSION_ID"
+```
+
+## Sending a message and streaming the response
+
+The `send` command attaches to a session, delivers your message, and streams every event to stdout in real time — text deltas appear inline, tool calls are annotated with markers, and the command exits with code `0` on success or `1` on error.
+
+```bash
+craft-cli send <session-id> "Refactor the auth module to use async/await"
+```
+
+You can also pipe input from stdin:
+
+```bash
+echo "Summarize this file" | craft-cli send <session-id>
+cat error.log | craft-cli send <session-id> "What's causing these errors?"
+```
+
+## Self-contained run example
+
+```bash
+craft-cli run --workspace-dir ./my-project "List all TODO comments in the codebase"
+```
+
+<Tip>
+  Use `--no-cleanup` if you want the session to persist after `run` exits so you can inspect the message history with `craft-cli session messages <id>`.
+</Tip>
+
+## TLS connections
+
+For remote servers with TLS enabled, use a `wss://` URL. If the server uses a self-signed certificate, pass the CA file so the CLI can verify it:
+
+```bash
+# Trusted certificate (Let's Encrypt, etc.)
+craft-cli --url wss://server.example.com:9100 ping
+
+# Self-signed certificate
+craft-cli --url wss://server.example.com:9100 --tls-ca ./certs/cert.pem ping
+```
+
+## Validating a server
+
+Run the built-in 21-step integration suite to verify that a server is fully functional:
+
+```bash
+# Against a running server
+craft-cli --validate-server --url ws://127.0.0.1:9100 --token <token>
+
+# Self-contained — auto-spawns a local server
+craft-cli --validate-server
+```
+
+The suite covers the full server lifecycle: connectivity, credential health, workspace and session CRUD, message streaming, tool use, source creation, and skill management. All temporary resources are cleaned up on completion.
+
+<Note>
+  `--validate-server` mutates workspace state by creating and deleting a temporary session, source, and skill. Run it against a non-production workspace or use the self-contained form that spawns its own isolated server.
+</Note>
+
+For the full command reference including every flag and exit code, see the [CLI Commands reference](/reference/cli-commands).
