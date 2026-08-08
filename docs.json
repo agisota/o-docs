@@ -59,6 +59,13 @@
             ]
           },
           {
+            "group": "Collaboration & Cloud",
+            "pages": [
+              "guides/organizations",
+              "guides/cloud-runs"
+            ]
+          },
+          {
             "group": "Remote & Headless",
             "pages": [
               "guides/remote-server",
