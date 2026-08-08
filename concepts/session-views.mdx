@@ -1,16 +1,16 @@
 ---
-title: "Session views: List, Board, and Table"
+title: "Session views: list, board, and table"
 sidebarTitle: "Session views"
 description: "Switch between list, board, and table views for the session collection. Filter, group, sort, and bulk-edit sessions with priority, due dates, and manual rank."
 ---
 
-The session collection supports three views of the same underlying sessions: **List**, **Board**, and **Table**. All three share the same filters, grouping, and ordering, so switching views never loses context — it just changes how the sessions are drawn.
+The session collection supports three views of the same underlying sessions: **List**, **Board**, and **Table**. All three share the same filters, grouping, and ordering. Switching views never loses context; it only changes how sessions are drawn.
 
 Use the view toggle at the top of the session collection to switch between them:
 
-- **List** — Chat-oriented rows for day-to-day triage and quick reading.
-- **Board** — Kanban columns for stage-based work (see the board's own column settings).
-- **Table** — Dense, spreadsheet-style rows for scanning and bulk editing many sessions at once.
+- **List**: chat-oriented rows for day-to-day triage and quick reading.
+- **Board**: kanban columns for stage-based work (see the board's own column settings).
+- **Table**: dense, spreadsheet-style rows for scanning and bulk editing many sessions at once.
 
 ## Filter chips
 
@@ -18,16 +18,16 @@ Filter chips sit above the collection and narrow what's visible across every vie
 
 You can filter by:
 
-- **Status** — Any workspace status, including custom ones.
-- **Priority** — Urgent, High, Medium, Low, or None.
-- **Project** — One or more workspace projects.
-- **Labels** — Any labels attached to the session.
-- **Due date** — Overdue, Today, or No due date.
-- **Flag** — Only flagged sessions.
-- **Unread** — Sessions with unread activity.
-- **Model** — The LLM model used.
+- **Status**: any workspace status, including custom ones.
+- **Priority**: Urgent, High, Medium, Low, or None.
+- **Project**: one or more workspace projects.
+- **Labels**: any labels attached to the session.
+- **Due date**: Overdue, Today, or No due date.
+- **Flag**: only flagged sessions.
+- **Unread**: sessions with unread activity.
+- **Model**: the LLM model used.
 
-Filters are stored per workspace and persist between app launches. Click **Clear filters** to remove all chips at once.
+Craft stores filters per workspace so they persist between app launches. Click **Clear filters** to remove all chips at once.
 
 <Note>
   Sidebar smart views still apply on top of chip filters. Visible sessions must satisfy both the smart view and the chips.
@@ -56,18 +56,18 @@ Toggle **Show empty groups** to hide sections with no matching sessions.
 
 Choose how sessions sort inside each group.
 
-- **Manual** — Drag to reorder. See [Manual rank](#manual-rank).
-- **Priority** — Urgent first.
-- **Due date** — Earliest first when ascending.
-- **Updated** — Most recent message activity.
-- **Created** — When the session was created.
-- **Name** — Alphabetical by title.
+- **Manual**: drag to reorder. See [Manual rank](#manual-rank).
+- **Priority**: Urgent first.
+- **Due date**: earliest first when ascending.
+- **Updated**: most recent message activity.
+- **Created**: when the session was created.
+- **Name**: alphabetical by title.
 
-Flip **Ascending** and **Descending** to reverse the direction.
+Switch between **Ascending** and **Descending** to reverse the direction.
 
 ### Properties
 
-Toggle which columns and inline fields appear: Status, Priority, Project, Labels, Due date, Model, Updated, Created, and Flag. Hidden properties still filter and sort — they just don't render on the row.
+Toggle which columns and inline fields appear: Status, Priority, Project, Labels, Due date, Model, Updated, Created, and Flag. Hidden properties still filter and sort. They only stop rendering on the row.
 
 ### Show completed
 
@@ -79,7 +79,7 @@ Off by default. When off, sessions with a terminal status (`Done`, `Cancelled`) 
 
 ## Session fields
 
-The following fields are available on every session and are editable inline on the table, on list rows (where the property is visible), and in the bulk bar.
+Every session has the following fields. You can edit them inline on the table, on list rows (where the property is visible), and in the bulk bar.
 
 ### Priority
 
@@ -87,27 +87,27 @@ Priority is one of `Urgent`, `High`, `Medium`, `Low`, or `None` (default). Click
 
 ### Due date
 
-An optional calendar date. Picked dates are stored as UTC noon of the chosen day and shown in your local timezone. A session becomes **Overdue** when its due date is earlier than today and its status is not terminal (`Done`, `Cancelled`). Overdue rows are visually highlighted.
+An optional calendar date. Craft stores picked dates as UTC noon of the chosen day and displays them in your local timezone. A session becomes **Overdue** when its due date is earlier than today and its status is not terminal (`Done`, `Cancelled`). Craft visually highlights overdue rows.
 
 ### Manual rank
 
-Every session has a manual rank used when **Order by** is set to **Manual**. Ranks are backfilled the first time you load a workspace — they start ordered by most recent message activity, so an ascending manual sort matches your familiar ordering until you drag something.
+Every session has a manual rank that Craft uses when **Order by** is set to **Manual**. Craft backfills ranks the first time you load a workspace, ordered by most recent message activity. An ascending manual sort matches your familiar ordering until you drag something.
 
 To reorder:
 
 1. Set **Order by** to **Manual**.
 2. Hover a row and use the drag handle to move it between two siblings.
 
-Cross-group drags update the writable field for that group (for example, dragging into a different **Priority** group sets the priority) and re-rank in the destination. Cross-group drags are disabled when grouping by **Label**.
+Cross-group drags update the writable field for that group and re-rank in the destination. For example, dragging into a different **Priority** group sets the priority. Cross-group drags are disabled when grouping by **Label**.
 
 ## Table view
 
 Table mode renders a virtualized, dense row per session so you can scan and edit many at once. Rows stay interactive on workspaces with thousands of sessions.
 
-- **Click the title or row body** to open the session.
-- **Click a status, priority, or flag cell** to edit inline without opening.
-- **Group headers show counts** and can be collapsed. Collapse state persists between sessions.
-- **Empty state** appears when no sessions match the current chips, with a shortcut to clear filters.
+- Click the title or row body to open the session.
+- Click a status, priority, or flag cell to edit inline without opening.
+- Group headers show counts and can be collapsed. Collapse state persists between sessions.
+- An empty state appears when no sessions match the current chips, with a shortcut to clear filters.
 
 ## Bulk actions
 
@@ -124,10 +124,10 @@ When one or more sessions are selected, the **Bulk actions** bar appears with:
 - Archive
 - Clear selection
 
-Archiving a group of sessions asks for confirmation when more than one session is selected or when any selected session is still processing. Processing sessions are skipped and reported as failed with reason `busy`; the rest complete.
+Archiving a group of sessions asks for confirmation when you select more than one session, or when any selected session is still processing. Craft skips processing sessions and reports them as failed with reason `busy`. The rest complete.
 
 <Note>
-  Bulk actions apply to at most 200 sessions per request. Selecting more than 200 rejects the request with a `BULK_LIMIT` error. Rank cannot be changed in bulk — reorder manually with drag instead.
+  Bulk actions apply to at most 200 sessions per request. Selecting more than 200 rejects the request with a `BULK_LIMIT` error. You cannot change rank in bulk. Reorder manually with drag instead.
 </Note>
 
 Selection clears automatically when you switch views, change filter chips, or press `Escape`.
@@ -140,4 +140,4 @@ A common triage flow using the shared collection tools:
 2. Open **Display**, set **Group by = Due date**, **Order by = Due date**, direction **Ascending**.
 3. Switch to **Table** to scan due dates across sessions.
 4. Select a range of overdue rows and use **Bulk actions → Set priority → Urgent** to escalate.
-5. Switch to **Board** — the same sessions appear, now bucketed by kanban column with the priority-order you chose inside each column.
+5. Switch to **Board**. The same sessions appear, now bucketed by kanban column with the priority order you chose inside each column.
