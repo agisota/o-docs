@@ -120,23 +120,30 @@ Permissions declared in the `craft` block still go through the standard extensio
 
 Craft discovers installed SiYuan plugins in this order:
 
-1. If a running SiYuan kernel is reachable, Craft asks it for the installed plugin list and reads the petals file.
-2. If the kernel is unavailable, Craft falls back to a filesystem scan of your SiYuan data directory, reading `data/plugins/*/plugin.json` and `storage/petal/petals.json`.
-3. If neither source returns anything, the list is empty.
+1. If a knowledge connection is configured and healthy, Craft uses its token to reach the kernel and read the installed plugin list plus the petals file.
+2. If no connection is configured, Craft tries the token in the kernel's `conf.json` (next to your data directory) and probes the kernel with it.
+3. If the kernel is unreachable, Craft falls back to a filesystem scan of your SiYuan data directory, reading `data/plugins/*/plugin.json` and `storage/petal/petals.json`.
+4. If none of the above return anything, the list is empty.
 
-The filesystem fallback means the Extension Center still shows your installed SiYuan plugins when the kernel is offline.
+When both the kernel and the filesystem are available, Craft merges them: the kernel supplies the installed-package rows, and the filesystem fills in the fuller `plugin.json` fields (including any `craft` block).
+
+The **Catalog** section can also show remote packages from the SiYuan Bazaar when the kernel is reachable. Installed plugins win over remote entries when they share a name, so a plugin only appears once. Craft never auto-installs a Bazaar plugin.
+
+<Note>
+  Tokens read from `conf.json` are used in-process only and never logged. Craft never downloads or spawns SiYuan itself.
+</Note>
 
 ### Enable and disable
 
 Toggling a SiYuan plugin in the Extension Center always writes to Craft's own state store, so the setting sticks even when the kernel is offline. On the next refresh, Craft prefers its local store over the kernel's petals file. When the kernel is running, Craft also mirrors the change to it through the standard plugin-enable API.
 
 <Note>
-  Craft never rewrites SiYuan's `petals.json` itself. Remote Bazaar browsing (for plugins you have not installed yet) is still on the roadmap.
+  Craft never rewrites SiYuan's `petals.json` itself. Installing plugins from the Bazaar catalog is browse-only for now — you can see remote entries, but installing them from Craft is still on the roadmap.
 </Note>
 
 ## Registries
 
-The Extension Center is designed so one catalog is not one runtime. The **Registries** section lists which catalog providers Craft is querying. Today, the curated Craft catalog is active. Additional providers like the SiYuan Bazaar appear as stubs and will become active in a later release.
+The Extension Center is designed so one catalog is not one runtime. The **Registries** section lists which catalog providers Craft is querying. The curated Craft catalog is always active. The SiYuan Bazaar is active when a SiYuan kernel is reachable and contributes both installed and remote plugins to the catalog. Installing Bazaar plugins from Craft is not yet available.
 
 ## Related
 
