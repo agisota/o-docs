@@ -4,9 +4,9 @@ sidebarTitle: "Extensions"
 description: "The Extension Center is a single catalog for every add-on that runs inside Craft Agents. Browse, install, update, and toggle extensions from one place."
 ---
 
-The Extension Center is a unified catalog for every add-on you can run inside Craft Agents. Skill packs, sources, automations, agent runtimes, and curated marketplace packages all appear in the same list, so you can browse, install, update, and toggle them without hopping between settings pages.
+The Extension Center is a unified catalog for every add-on you can run inside Craft Agents. Skill packs, sources, automations, agent runtimes, and curated marketplace packages all appear in the same list. You can browse, install, update, and toggle them without switching between settings pages.
 
-You open the Extension Center from **Settings → Extensions**. The old **Marketplace** entry now redirects here, so any bookmarks or deep links continue to work.
+Open the Extension Center from **Settings → Extensions**. The old **Marketplace** entry now redirects here, so any bookmarks or deep links continue to work.
 
 ## What counts as an extension?
 
@@ -37,13 +37,13 @@ The Extensions page is split into seven sections:
 - **Developer** — tools for local development. Live folder installs and verbose logs are coming in a later release.
 - **Registries** — the catalog providers Craft queries. The curated Craft catalog is active by default.
 
-Every card shows the runtime badge, the workspaces it works in, and the permissions it requests. High-risk permissions (`shell.execute`, `filesystem.write`, `browser.automate`, `network.request`, and any `secrets.use:*`) are highlighted so you can review them before installing.
+Every card shows the runtime badge, the workspaces it works in, and the permissions it requests. Craft highlights high-risk permissions so you can review them before installing: `shell.execute`, `filesystem.write`, `browser.automate`, `network.request`, and any `secrets.use:*`.
 
 ## Install, update, and uninstall
 
-Curated marketplace entries expose **Install**, **Update**, and **Uninstall** actions directly on the card. Installs write to the workspace you select as the target — **Global**, **Workspace**, or **Project** — and reuse the same marketplace machinery you already use elsewhere in Craft Agents.
+Curated marketplace entries expose **Install**, **Update**, and **Uninstall** actions directly on the card. Installs write to the target you select: **Global**, **Workspace**, or **Project**. They reuse the same marketplace machinery you already use elsewhere in Craft Agents.
 
-Updates appear automatically when a catalog entry's pinned ref no longer matches your local lockfile. Selecting **Update** re-runs the install against the new ref.
+Updates appear automatically when a catalog entry's pinned ref no longer matches your local lockfile. Select **Update** to re-run the install against the new ref.
 
 <Note>
   Skills, sources, and automations you already had before the Extension Center shipped continue to live in their own stores. The catalog reads from those stores, so nothing is migrated and nothing is lost.
@@ -92,7 +92,7 @@ You can also record extension-level permission overrides in your workspace's per
 
 ## Registries
 
-The Extension Center is designed so one catalog is not one runtime. The **Registries** section lists which catalog providers Craft is querying. Today the curated Craft catalog is active; additional providers like the SiYuan Bazaar are visible as stubs and will light up in a later release.
+The Extension Center is designed so one catalog is not one runtime. The **Registries** section lists which catalog providers Craft is querying. Today, the curated Craft catalog is active. Additional providers like the SiYuan Bazaar appear as stubs and will become active in a later release.
 
 ## Related
 
