@@ -1,0 +1,76 @@
+---
+title: "Cloud Runs: Offload Long Research Tasks to the Cloud"
+sidebarTitle: "Cloud Runs"
+description: "Kick off long-running research and briefing jobs on a cloud provider from the Craft Agents composer, then pull the artifacts back into a session."
+---
+
+Cloud Runs let you hand off long research jobs — competitor scans, literature reviews, vendor briefs — to a cloud provider so the work continues even after you close the app. When a run finishes, you can import its artifacts back into the current session and have your local agent write the final report over the imported briefs.
+
+## When to use Cloud Runs
+
+Reach for a cloud run when:
+
+- The job is bigger than a single conversation turn (multiple hours, thousands of pages, dozens of sources).
+- You want the work to keep going while your machine sleeps or you switch tasks.
+- You want a reproducible research pipeline you can rerun on a schedule.
+
+For everyday sessions, stay in the local composer — cloud runs add latency and cost overhead that only pays off for substantial jobs.
+
+## Enable Cloud Runs
+
+Cloud Runs are enabled by default and configured from **Settings → Cloud Runs**.
+
+<Steps>
+  <Step title="Pick a provider">
+    Choose one of `local`, `cloudflare`, `modal`, or `e2b`. The `local` provider runs the job as a subprocess on your machine — useful for testing without provider credentials.
+  </Step>
+  <Step title="Set the gateway URL (cloud providers only)">
+    For `cloudflare` and `modal`, set the **Gateway URL** to your deployed cloud gateway. The default is Craft's hosted gateway.
+  </Step>
+  <Step title="Add your provider token">
+    Provider secrets live in a user-managed env file at `~/.craft-agent/cloud-runs.env` (mode `0600`). Add `CLOUD_RUNS_TOKEN=...` (and, if needed, `CLOUDFLARE_GATEWAY_URL` or `MODAL_GATEWAY_URL`) and reopen the settings page. The token field is not editable from the UI to keep secrets out of app-managed config files.
+  </Step>
+</Steps>
+
+The settings page shows whether the token is present without displaying its value.
+
+## Submit a run
+
+Open a session and click the **cloud rocket** chip in the top-right of the composer. In the dialog:
+
+1. Pick a **preset** (`research`, `competitor`, `literature`, or `vendor`) — each preset is a curated research spec.
+2. Enter a **topic**, or click **Prefill from session** to reuse the current session's topic.
+3. Toggle **Personas** to run the preset across the default persona set for broader coverage.
+4. Click **Start run**.
+
+The chip shows the number of active runs and toasts when a run finishes in the background.
+
+<Note>
+  Runs are polled every 5 seconds while the dialog is open and every 30 seconds in the background. You can close the app and the provider keeps working; the run list survives on the gateway.
+</Note>
+
+## Import artifacts into a session
+
+When a run reaches **Done**, open the chip dialog and use the row actions to:
+
+- **Download artifacts** to `~/.craft-agent/workspaces/<workspace>/runs/<run-id>/`.
+- **Aggregate** — download the artifacts and hand them to the local agent, which stitches the briefs into a single report inside the current session.
+- **Fork** — start a follow-up run that inherits the topic and asks a new question.
+
+## Schedule recurring runs
+
+Open the chip dialog and choose **Schedules** to configure recurring runs. Each schedule has a topic, an interval in hours, and a session ID that the results are aggregated into when the schedule fires. Use this for weekly competitor briefs or a rolling literature scan.
+
+```json
+{
+  "topic": "AI agent frameworks",
+  "everyHours": 168,
+  "sessionId": "sess_abc123",
+  "enabled": true
+}
+```
+
+## Related settings
+
+- `~/.craft-agent/config.json` → `cloudRuns` — provider, gateway URL, and default budgets (wall-clock seconds, LLM tokens, artifact bytes).
+- `~/.craft-agent/cloud-runs.env` — provider tokens and per-provider gateway URLs.

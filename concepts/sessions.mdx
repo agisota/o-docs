@@ -8,10 +8,11 @@ A session is a single, self-contained conversation with the AI agent. Every mess
 
 ## Session status workflow
 
-Every session moves through a Kanban-style status pipeline that helps you track work from idea to completion. You can move a session forward or backward at any time by clicking the status badge in the session list.
+Every session moves through a Kanban-style status pipeline that helps you track work from idea to completion. You can move a session forward or backward at any time by clicking the status badge in the session list, or by dragging its tile between columns on the Kanban board.
 
 | Status | Meaning |
 |---|---|
+| **Backlog** | Ideas and future work you're not ready to start. The Backlog column is collapsed by default so it stays out of the way. |
 | **Todo** | The session has been created but work hasn't started yet. Use this to queue up tasks. |
 | **In Progress** | The agent is actively working, or you are mid-conversation. |
 | **Needs Review** | Work is done but you need to check the result before signing off. |
@@ -20,6 +21,24 @@ Every session moves through a Kanban-style status pipeline that helps you track 
 <Tip>
   You can customise the available statuses for each workspace. Ask the agent "add a Blocked status to this workspace" and it will update the status configuration for you.
 </Tip>
+
+## Kanban board
+
+The Kanban board is a five-column view of every session in the current workspace: Backlog, Todo, In Progress, Needs Review, and Done. Drag a session tile between columns to update its status.
+
+### Auto-run on drop
+
+Dropping a tile onto **In Progress** immediately starts an agent turn for that session, the same as clicking Play on the tile. This gives you a queue-and-run workflow: draft several sessions in Todo, then drag them into In Progress one after another to kick each one off.
+
+You can also configure any other column to run a prompt on drop. Open the column header menu, enable **Auto-run prompt**, and enter the text you want prepended to the session's goal when it lands in that column. Drops into columns without an auto-run prompt only change the status.
+
+<Note>
+  Auto-run drops are queued per workspace and skip any session that is already processing, so rapid re-drops cannot double-fire the same turn.
+</Note>
+
+### Grouping
+
+By default the board groups tiles by project inside each column, with a section header for each project and an "Unassigned" group for sessions without one. To switch to a flat list, open the board's overflow menu and set **Group by** to **None**.
 
 ## Labels
 
