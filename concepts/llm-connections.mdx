@@ -1,26 +1,46 @@
 ---
-title: "Connect LLM Providers to Craft Agents"
+title: "Craft Agents LLM Connections: Connect AI Providers"
 sidebarTitle: "LLM Connections"
-description: "Craft Agents supports Anthropic, Google AI Studio, ChatGPT Plus, GitHub Copilot, OpenRouter, Ollama, and any OpenAI-compatible endpoint."
+description: "Connect Anthropic, Google AI Studio, ChatGPT Plus, GitHub Copilot, OpenRouter, Ollama, Vercel AI Gateway, or any custom endpoint to Craft Agents."
 ---
 
 Craft Agents is not tied to a single AI provider. You can add as many LLM connections as you like — one for Anthropic Claude, one for a local Ollama model, one for GitHub Copilot — and choose which connection a session uses at any point. This lets you pick the right model for each task: a fast local model for quick lookups, a frontier model for complex reasoning, and a subscription-based provider to avoid per-token costs.
 
 ## Supported providers
 
-| Provider | Auth method |
-|---|---|
-| **Anthropic** | API key or Claude Max/Pro OAuth |
-| **Google AI Studio** | API key |
-| **ChatGPT Plus / Pro** | Codex OAuth (sign in with your ChatGPT subscription) |
-| **GitHub Copilot** | OAuth — device code flow |
-| **OpenRouter** | Custom Anthropic-compatible endpoint |
-| **Vercel AI Gateway** | Custom endpoint |
-| **Ollama** | Local — no API key required |
-| **Custom** | Any OpenAI-compatible or Anthropic-compatible endpoint |
+<CardGroup cols={2}>
+  <Card title="Anthropic" icon="key">
+    Connect via an API key or sign in with your Claude Max or Pro subscription using OAuth. Gives you direct access to the full Claude model family.
+  </Card>
+  <Card title="Google AI Studio" icon="key">
+    Connect with a Google AI Studio API key to use Gemini models, including native Google Search grounding.
+  </Card>
+  <Card title="ChatGPT Plus / Pro" icon="arrow-right-to-bracket">
+    Sign in with your ChatGPT subscription using Codex OAuth — no separate API key required.
+  </Card>
+  <Card title="GitHub Copilot" icon="arrow-right-to-bracket">
+    Authenticate once with the OAuth device code flow and use your existing Copilot subscription.
+  </Card>
+  <Card title="OpenRouter" icon="globe">
+    Access hundreds of models — Claude, GPT, Llama, Gemini, and more — through a single OpenRouter API key pointed at a custom endpoint.
+  </Card>
+  <Card title="Vercel AI Gateway" icon="globe">
+    Route requests through Vercel's AI Gateway for built-in observability and caching by pointing to a custom endpoint.
+  </Card>
+  <Card title="Ollama" icon="computer">
+    Run open-source models locally with no API key required. Point to your local Ollama server.
+  </Card>
+  <Card title="Custom endpoint" icon="wrench">
+    Any OpenAI-compatible or Anthropic-compatible endpoint. Useful for self-hosted models, proxies, or private deployments.
+  </Card>
+</CardGroup>
 
 <Note>
-  OpenRouter, Vercel AI Gateway, Ollama, and custom endpoints are configured through the **Claude / Anthropic API key** connection type by pointing it at a custom base URL. For example, set the base URL to `http://localhost:11434` to route requests through a local Ollama server.
+  OpenRouter, Vercel AI Gateway, Ollama, and other custom endpoints are configured by selecting the **Anthropic / API Key** connection type and entering a custom base URL. For example:
+
+  - **Ollama:** `http://localhost:11434`
+  - **OpenRouter:** `https://openrouter.ai/api/v1`
+  - **Vercel AI Gateway:** `https://ai-gateway.vercel.sh`
 </Note>
 
 ## Adding a connection
@@ -37,10 +57,10 @@ Craft Agents is not tied to a single AI provider. You can add as many LLM connec
   </Step>
   <Step title="Enter your credentials">
     Depending on the provider, you will be prompted to:
-    - Paste an **API key** (Anthropic, Google AI Studio, OpenRouter)
+    - Paste an **API key** (Anthropic, Google AI Studio)
     - Complete an **OAuth flow** in your browser (Claude Max/Pro, ChatGPT Plus/Pro)
     - Authenticate via **device code** (GitHub Copilot)
-    - Enter a **base URL** for self-hosted or proxy endpoints (Ollama, Vercel AI Gateway, custom)
+    - Enter a **base URL** for self-hosted or proxy endpoints (OpenRouter, Ollama, Vercel AI Gateway, custom)
   </Step>
   <Step title="Name the connection (optional)">
     Give the connection a recognisable name — for example, "Claude Sonnet (personal key)" — so you can tell connections apart in the session switcher.

@@ -1,5 +1,5 @@
 ---
-title: "Craft Agents CLI: Terminal Client Overview"
+title: "Craft Agents CLI: Manage Sessions from Your Terminal"
 sidebarTitle: "CLI Overview"
 description: "The Craft Agents CLI connects to a running server over WebSocket, enabling automation, scripting, and headless session management from your terminal."
 ---
@@ -8,15 +8,25 @@ The Craft Agents CLI (`craft-cli`) is a terminal client that speaks directly to 
 
 ## Installation
 
+Install from source using Bun:
+
 ```bash
-# Run directly from the monorepo (requires Bun)
+git clone https://github.com/lukilabs/craft-agents-oss.git
+cd craft-agents-oss
+bun install
+```
+
+Then run the CLI directly:
+
+```bash
 bun run apps/cli/src/index.ts --help
+```
 
-# Or create an alias for convenience
-alias craft-cli="bun run $(pwd)/apps/cli/src/index.ts"
+Or link it globally so `craft-cli` is available on your PATH:
 
-# Or link globally so craft-cli is on your PATH
+```bash
 cd apps/cli && bun link
+craft-cli --help
 ```
 
 ## Connection options
@@ -138,11 +148,36 @@ echo "Summarize this file" | craft-cli send <session-id>
 cat error.log | craft-cli send <session-id> "What's causing these errors?"
 ```
 
+The `send` command streams the following event types:
+
+| Event | Output |
+|---|---|
+| `text_delta` | Text streamed inline to stdout |
+| `tool_start` | `[tool: name]` marker |
+| `tool_result` | Tool output (truncated to 200 chars) |
+| `error` | Printed to stderr; exits with code `1` |
+| `complete` | Exits with code `0` |
+| `interrupted` | Exits with code `130` |
+
 ## Self-contained run example
 
 ```bash
 craft-cli run --workspace-dir ./my-project "List all TODO comments in the codebase"
 ```
+
+The `run` command accepts the following flags:
+
+| Flag | Env fallback | Default | Description |
+|---|---|---|---|
+| `--workspace-dir <path>` | — | — | Register a workspace directory before running |
+| `--source <slug>` | — | — | Enable a source (repeatable) |
+| `--output-format <fmt>` | — | `text` | Output format: `text` or `stream-json` |
+| `--mode <mode>` | — | `allow-all` | Permission mode for the session |
+| `--no-cleanup` | — | `false` | Skip session deletion on exit |
+| `--provider <name>` | `LLM_PROVIDER` | `anthropic` | LLM provider (`anthropic`, `openai`, `google`, `openrouter`, `groq`, `mistral`, `xai`, etc.) |
+| `--model <id>` | `LLM_MODEL` | provider default | Model ID (e.g., `claude-sonnet-4-5-20250929`, `gpt-4o`, `gemini-2.0-flash`) |
+| `--api-key <key>` | `LLM_API_KEY` | provider env var | API key — also checks provider-specific vars like `$ANTHROPIC_API_KEY` |
+| `--base-url <url>` | `LLM_BASE_URL` | — | Custom API endpoint for proxies or self-hosted models |
 
 <Tip>
   Use `--no-cleanup` if you want the session to persist after `run` exits so you can inspect the message history with `craft-cli session messages <id>`.

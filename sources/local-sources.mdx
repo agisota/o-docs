@@ -30,7 +30,7 @@ The `local.path` field is the only required field inside the `local` block. It c
 Absolute paths break when you move to a new machine or work across multiple devices. Path variables are expanded automatically at load time, making your source configs portable without any manual editing.
 
 | Variable | Resolves to | Example |
-|----------|-------------|---------|
+|----------|-------------|---------| 
 | `~` | Home directory | `~/Documents/MyProject` |
 | `${HOME}` | Home directory | `${HOME}/Documents/MyProject` |
 | `${CRAFT_CONFIG_DIR}` | Craft Agent config dir (default: `~/.craft-agent`) | `${CRAFT_CONFIG_DIR}/reference-files` |
@@ -100,11 +100,7 @@ Match your `permissions.json` to the operations you actually need in Explore mod
 
 ## Validating the source
 
-After creating `config.json`, the agent runs `source_test` to confirm the path exists and is accessible. If the path doesn't exist yet, `source_test` will report an error — create the directory first, then re-run the test.
-
-```
-source_test({ sourceSlug: "obsidian" })
-```
+After creating `config.json`, Craft Agents checks that the path exists and is accessible. You can trigger this check at any time from **Settings → Sources** by selecting the source and clicking **Test Connection**. If the path doesn't exist yet, create the directory first and then run the test again.
 
 Unlike MCP and API sources, local sources have no authentication step. Once the path validates, the source is ready to use.
 

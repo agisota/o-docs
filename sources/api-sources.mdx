@@ -1,5 +1,5 @@
 ---
-title: "API Sources: Connect REST APIs to Craft Agents"
+title: "API Sources: Integrate REST APIs with Craft Agents"
 sidebarTitle: "API Sources"
 description: "API sources connect Craft Agents to any REST API with bearer, header, query, basic, or OAuth authentication. Supports auto token refresh."
 ---
@@ -155,7 +155,7 @@ Sends credentials as HTTP Basic Auth (`Authorization: Basic base64(username:pass
 ```
 
 <Tip>
-Some APIs use Basic Auth but only need the username field (the API key), leaving the password empty. When the agent prompts for credentials it can mark the password as optional for these services.
+Some APIs use Basic Auth but only need the username field (the API key), leaving the password empty. When Craft Agents prompts for credentials it can mark the password as optional for these services.
 </Tip>
 
 ### OAuth 2.0
@@ -190,7 +190,7 @@ Tokens are sent as `Authorization: Bearer {token}` and refreshed automatically w
 
 ## The `testEndpoint` field
 
-Authenticated API sources must include a `testEndpoint`. It is called by `source_test` to verify your credentials actually work. Without it, the agent cannot confirm that authentication succeeded.
+Authenticated API sources must include a `testEndpoint`. Craft Agents calls it when you test the source connection to verify your credentials actually work. Without it, the app cannot confirm that authentication succeeded.
 
 ```json
 {
@@ -280,9 +280,9 @@ The `icon` field in `config.json` controls what appears in the UI:
 |--------------|-----------|
 | Emoji, e.g. `"📊"` | Rendered as emoji text |
 | Local path, e.g. `"./icon.svg"` | Loaded from `sources/{slug}/icon.svg` |
-| URL, e.g. `"https://example.com/favicon.ico"` | Auto-downloaded and cached locally by `source_test` |
+| URL, e.g. `"https://example.com/favicon.ico"` | Auto-downloaded and cached locally on first connection test |
 | Omitted or `null` | Auto-discovers `icon.svg` or `icon.png` in the source folder, then falls back to the provider's favicon |
 
 <Tip>
-Set `icon` to a URL when you create a source. After `source_test` runs, the icon is cached locally so the app renders it instantly, even offline.
+Set `icon` to a URL when you create a source. After the connection is first tested, the icon is cached locally so the app renders it instantly, even offline.
 </Tip>

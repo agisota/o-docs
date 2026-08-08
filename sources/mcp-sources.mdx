@@ -1,5 +1,5 @@
 ---
-title: "MCP Sources: Connect via Model Context Protocol"
+title: "MCP Sources: Connect via the Model Context Protocol"
 sidebarTitle: "MCP Sources"
 description: "MCP sources connect Craft Agents to any MCP-compatible server via HTTP OAuth or stdio transport. Includes Linear, GitHub, and Craft document tools."
 ---
@@ -41,7 +41,7 @@ The simplest HTTP source points at a URL and declares an auth type. This example
 }
 ```
 
-After the agent creates this file it calls `source_oauth_trigger` to open the OAuth consent screen. Once you approve, the token is stored encrypted and refreshed automatically.
+After the source is created and validated, Craft Agents opens the OAuth consent screen in your browser. Once you approve, the token is stored encrypted and refreshed automatically.
 
 **MCP auth types:**
 
@@ -206,13 +206,13 @@ When setting up a new MCP source, connect first, list the server's available too
   <Step title="Create config.json">
     Ask your agent to add the source ("Add Linear as a source") or write `config.json` manually in `~/.craft-agent/workspaces/{id}/sources/{slug}/`. Include `id`, `name`, `slug`, `type: "mcp"`, and the `mcp` block.
   </Step>
-  <Step title="Run source_test">
-    The agent runs `source_test` automatically after creating the config. This validates the schema, downloads and caches the icon, checks connectivity, and flips `enabled: true` if everything passes.
+  <Step title="Validate the connection">
+    Craft Agents validates the config schema, downloads and caches the icon, checks connectivity, and enables the source if everything passes. You can also trigger this at any time from **Settings → Sources** by selecting the source and clicking **Test Connection**.
   </Step>
   <Step title="Authenticate">
-    After validation succeeds, the agent triggers the appropriate auth flow:
-    - OAuth sources → opens the OAuth consent screen
-    - Bearer sources → prompts you to enter your personal access token
+    After validation succeeds, complete the appropriate auth flow:
+    - **OAuth sources** — Craft Agents opens the OAuth consent screen in your browser. Sign in and approve access.
+    - **Bearer sources** — a credential prompt appears asking you to enter your personal access token.
   </Step>
   <Step title="Write permissions.json">
     List the server's tools, identify the read-only ones, and create `permissions.json` so the source works fully in Explore mode. The agent handles this step automatically during conversational setup.

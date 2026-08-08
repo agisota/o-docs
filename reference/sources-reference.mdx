@@ -31,11 +31,11 @@ sources/
 | `enabled` | `boolean` | **Yes** | Whether the source is active. Set to `false` to disable without deleting. |
 | `provider` | `string` | **Yes** | Provider key (e.g., `linear`, `github`, `openai`). Used for favicon resolution. |
 | `type` | `string` | **Yes** | Source type: `"mcp"`, `"api"`, or `"local"`. |
-| `icon` | `string` | No | Emoji (e.g., `"🔧"`) or URL to download. `source_test` downloads URLs and caches a local file. |
+| `icon` | `string` | No | Emoji (e.g., `"🔧"`) or URL to download. Icon URLs are downloaded and cached as a local file automatically when the source is tested. |
 | `tagline` | `string` | No | Short description injected into agent context (e.g., `"Issue tracking and sprint planning"`). |
-| `connectionStatus` | `string` | No | Set by `source_test`. See [Connection status values](#connection-status-values). |
-| `lastTestedAt` | `number` | No | Unix timestamp (ms) of the last successful `source_test` run. |
-| `isAuthenticated` | `boolean` | No | Set by `source_test` after credentials are verified. |
+| `connectionStatus` | `string` | No | Updated after a connection test. See [Connection status values](#connection-status-values). |
+| `lastTestedAt` | `number` | No | Unix timestamp (ms) of the last successful connection test. |
+| `isAuthenticated` | `boolean` | No | Set to `true` after credentials are verified by the connection test. |
 | `createdAt` | `number` | No | Unix timestamp (ms) when the source was created. |
 | `updatedAt` | `number` | No | Unix timestamp (ms) of the last config update. |
 
@@ -48,7 +48,7 @@ Exactly one of `mcp`, `api`, or `local` must also be present, matching the value
 | `connected` | Source is reachable and credentials are valid. |
 | `needs_auth` | Source is configured but credentials are missing or expired. |
 | `failed` | Last connectivity check failed. See `connectionError` in the file for details. |
-| `untested` | `source_test` has never been run for this source. |
+| `untested` | The source has never been tested. |
 
 ---
 
@@ -137,7 +137,7 @@ Use the `api` block when `type` is `"api"`. API sources let the agent call REST 
 | `authScheme` | `string` | No | Authorization scheme prefix for `authType: "bearer"`. Defaults to `"Bearer"`. |
 | `oauth` | `object` | No | Explicit OAuth endpoints and client credentials. Required for non-discoverable OAuth providers. |
 | `renewEndpoint` | `object` | No | Configures automatic token renewal for non-OAuth bearer APIs. |
-| `testEndpoint` | `object` | Recommended | Endpoint called by `source_test` to verify credentials. Required for all authenticated API sources. |
+| `testEndpoint` | `object` | Recommended | Endpoint called during connection tests to verify credentials. Required for all authenticated API sources. |
 
 ### `authType` values
 
@@ -182,7 +182,7 @@ The optional `renewEndpoint` enables automatic token renewal for non-OAuth beare
 
 ## `testEndpoint` rules
 
-The `testEndpoint` tells `source_test` which endpoint to call to verify your credentials. It is required for all authenticated API sources.
+The `testEndpoint` specifies which endpoint to call when verifying your credentials. It is required for all authenticated API sources.
 
 ```json
 {
@@ -205,8 +205,7 @@ The `testEndpoint` tells `source_test` which endpoint to call to verify your cre
   - `baseUrl` **must** have a trailing slash: `https://api.example.com/v1/` ✅
   - `testEndpoint.path` **must not** have a leading slash: `me` ✅, `/me` ❌
 
-  If either rule is violated, `source_test` will construct a malformed URL and
-  the connection check will fail.
+  If either rule is violated, the connection check will construct a malformed URL and fail.
 </Warning>
 
 **Good endpoint choices:**
@@ -314,7 +313,7 @@ Path variables are expanded inside platform overrides using the same rules as de
 
 ## `permissions.json` schema
 
-The optional `permissions.json` file extends what operations are permitted in **Explore mode** (`permissionMode: "safe"`) for this source. Patterns are automatically scoped to the source — you write simple patterns and the system prefixes them with `mcp__{sourceSlug}__` internally.
+The optional `permissions.json` file extends what operations are permitted in **Explore mode** (`permissionMode: "safe"`) for this source. Patterns are automatically scoped to the source — you write simple patterns (e.g., `list`, `get`) and the system ensures they only match tools belonging to this source.
 
 ```json
 {

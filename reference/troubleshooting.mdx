@@ -1,7 +1,7 @@
 ---
-title: "Troubleshoot Common Craft Agents Issues"
+title: "Troubleshoot Craft Agents Connection and Auth Problems"
 sidebarTitle: "Troubleshooting"
-description: "Solutions for common Craft Agents problems: connection errors, authentication failures, TLS issues, and how to enable debug logging."
+description: "Fix common Craft Agents issues: connection timeouts, authentication failures, TLS certificate errors, debug logging, and server health checks."
 ---
 
 Craft Agents is a desktop-first application with optional remote server and CLI components, so problems can surface in a few different layers. This page walks through the most common symptoms, their root causes, and the fastest path to a fix. If nothing here resolves your issue, see [Getting help](#getting-help) at the bottom of the page.
@@ -17,11 +17,7 @@ Craft Agents is a desktop-first application with optional remote server and CLI 
     - Confirm the headless server process is running. If you started it manually, check the terminal where you launched it for any startup errors.
     - Verify the URL scheme matches your setup — use `ws://` for unencrypted local connections and `wss://` when TLS is enabled.
     - Make sure the port (default `9100`) is not blocked by a firewall or occupied by another process.
-    - If connecting to a remote host, confirm the server is bound to `0.0.0.0` rather than `127.0.0.1`:
-
-    ```bash
-    CRAFT_RPC_HOST=0.0.0.0 CRAFT_SERVER_TOKEN=<token> bun run packages/server/src/index.ts
-    ```
+    - If connecting to a remote host, confirm the server is bound to `0.0.0.0` rather than `127.0.0.1`. Set `CRAFT_RPC_HOST=0.0.0.0` in the server's environment before starting it.
 
     Run a quick connectivity check with the CLI after the server is reachable:
 
@@ -132,9 +128,9 @@ Craft Agents is a desktop-first application with optional remote server and CLI 
   <Accordion title="Source not connecting">
     If a source (MCP server, REST API, or local filesystem) fails to connect or authenticate, work through these steps:
 
-    1. **Run the built-in source test.** Ask the agent to run `source_test` for the affected source, or check the source configuration in the desktop app's Sources panel.
+    1. **Check the source in the desktop app.** Open the Sources panel and verify the source shows a healthy status. You can also ask the agent to test the connection for the affected source.
     2. **Check credentials.** Re-enter or rotate the API key / OAuth token for the source. Credentials are stored encrypted at `~/.craft-agent/credentials.enc`.
-    3. **Verify `testEndpoint` config.** For REST API sources, confirm the `testEndpoint` in the source's `config.json` returns a successful response.
+    3. **Verify the source endpoint is reachable.** For REST API sources, confirm the configured endpoint URL is accessible and returns a successful response from your network.
     4. **Check environment variable filtering.** Craft Agents intentionally blocks certain sensitive env vars (such as `ANTHROPIC_API_KEY`, `AWS_*`, `GITHUB_TOKEN`) from being passed to MCP subprocess environments. If a local MCP server needs one of these variables, add it explicitly to the source's `env` field in its config.
 
     ```json

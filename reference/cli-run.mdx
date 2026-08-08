@@ -1,7 +1,7 @@
 ---
-title: "craft-cli run: Self-Contained Agent Execution"
+title: "craft-cli run: Self-Contained AI Agent from the Terminal"
 sidebarTitle: "run Command"
-description: "craft-cli run spawns a temporary server, runs an agent prompt, streams the response, and exits — no separate server setup required."
+description: "craft-cli run spawns a local server, creates a session, streams the AI response to stdout, and exits — no separate server setup required."
 ---
 
 The `run` command is the simplest way to use Craft Agents from the terminal. It is entirely self-contained: it spawns a local headless server, creates a session, sends your prompt, streams the AI response to stdout, and then tears everything down when it finishes — no separate server process, no pre-existing workspace, and no configuration files required.
@@ -24,7 +24,7 @@ craft-cli run "What does this codebase do?"
 ## Flags
 
 <ParamField query="--provider" type="string" default="anthropic">
-  LLM provider to use. Supported values: `anthropic`, `openai`, `google`, `openrouter`, `groq`, `mistral`, `deepseek`, `xai`, `cerebras`, `huggingface`, `amazon-bedrock`. Falls back to the `LLM_PROVIDER` environment variable.
+  LLM provider to use. Supported values: `anthropic`, `openai`, `google`, `openrouter`, `groq`, `mistral`, `deepseek`, `xai`, `cerebras`, `huggingface`, `amazon-bedrock`. Falls back to the `LLM_PROVIDER` environment variable; defaults to `anthropic` if neither is set.
 </ParamField>
 
 <ParamField query="--model" type="string">

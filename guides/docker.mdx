@@ -1,7 +1,7 @@
 ---
-title: "Deploy Craft Agents Server with Docker"
+title: "Run Craft Agents Server in Docker with Persistence"
 sidebarTitle: "Docker"
-description: "Run the Craft Agents headless server in a Docker container with persistent storage. Includes docker run and compose examples."
+description: "Deploy the Craft Agents headless server in Docker with persistent storage. Includes docker run and Compose examples plus TLS configuration."
 ---
 
 Running the Craft Agents server inside a Docker container is the quickest way to get a self-contained, reproducible deployment on any machine that has Docker installed. The container exposes the WebSocket server on port `9100` and stores all your workspaces, sessions, and credentials in a named volume so your data persists across container restarts, upgrades, and re-deploys.
@@ -113,12 +113,11 @@ If you remove the volume (`docker volume rm craft-data`) all data is permanently
 
 ## Connecting the desktop app
 
-Once the container is running and you have the token, connect the Craft Agents desktop app in thin-client mode:
+Once the container is running and you have the token, connect the Craft Agents desktop app in thin-client mode by setting these environment variables before launching the app:
 
 ```bash
-CRAFT_SERVER_URL=ws://<your-server-ip>:9100 \
-CRAFT_SERVER_TOKEN=<token> \
-bun run electron:start
+export CRAFT_SERVER_URL=ws://<your-server-ip>:9100
+export CRAFT_SERVER_TOKEN=<token>
 ```
 
 If you enabled TLS, use `wss://` instead of `ws://`. For a self-signed certificate, supply the CA file with the `--tls-ca` flag when using the CLI, or add the certificate to your OS trust store for the desktop app.

@@ -1,7 +1,7 @@
 ---
 title: "Skills: Reusable Agent Instructions for Your Workspace"
 sidebarTitle: "Skills"
-description: "Skills are reusable instruction bundles that give your agent specialised knowledge. Create custom skills or import from the built-in library."
+description: "Skills are reusable instruction bundles that give your agent specialised knowledge. Create custom skills or install from the built-in library."
 ---
 
 Skills package specialised instructions into reusable bundles that you can invoke any time — in any session, mid-conversation, or automatically when matching files are open. Each skill is a single `SKILL.md` file written in the same format used by the Claude Code SDK, so any skill you already have from Claude Code works in Craft Agents without modification.
@@ -12,7 +12,7 @@ A skill is a Markdown file that tells your agent how to behave for a specific ta
 
 Skills live on disk as `SKILL.md` files, grouped into named folders:
 
-```
+```text
 ~/.craft-agent/workspaces/{workspaceId}/skills/{slug}/
 ├── SKILL.md      # Required — skill definition
 ├── icon.svg      # Recommended — displayed in the UI
@@ -22,44 +22,48 @@ Skills live on disk as `SKILL.md` files, grouped into named folders:
 Because each skill is a plain Markdown file, you can version them in Git, share them with teammates, or edit them directly in any text editor.
 
 <Note>
-  Workspace skills take precedence over built-in SDK skills. Create a skill with the same slug as a built-in (e.g., `commit`) to override it workspace-wide.
+  Workspace skills take precedence over built-in skills. Create a skill with the same slug as a built-in (e.g., `tdd`) to override it workspace-wide.
 </Note>
 
 ## Invoking a skill
 
 Type `/skill-name` anywhere in your message to invoke a skill by its slug:
 
-```
-/review-pr Check the latest diff for breaking changes
-```
-
-You can also reference a skill inline with `@skill-name`:
-
-```
-Run the @weather skill and give me today's forecast
+```text
+/code-review Check the latest diff for breaking changes
 ```
 
-If no workspace skill matches the slug, Craft Agents falls back to the built-in SDK skill of the same name.
+If no workspace skill matches the slug, Craft Agents falls back to the built-in skill of the same name.
 
 ## Built-in skill packs
 
 Craft Agents ships curated skill packs you can install from **Settings → Skills → Browse Packs**. Each pack groups related skills around a theme.
 
-<CardGroup cols={3}>
+<CardGroup cols={2}>
   <Card title="Matt Pocock Skills" icon="code">
     Practical skills for everyday TypeScript and JavaScript development.
 
-    `tdd` · `code-review` · `codebase-design` · `prototype` · `implement` · `research` · `diagnose-bugs` · `teach`
+    `tdd` · `code-review` · `codebase-design` · `domain-modeling` · `diagnosing-bugs` · `prototype` · `implement` · `research` · `triage` · `teach` · `grill-me` · `handoff`
   </Card>
   <Card title="Vercel Agent Skills" icon="triangle">
     Deployment and frontend best-practice skills tuned for Vercel projects.
 
-    `deploy-to-vercel` · `react-best-practices` · `vercel-optimize`
+    `deploy-to-vercel` · `react-best-practices` · `react-native-skills` · `vercel-optimize`
+  </Card>
+  <Card title="Vercel Next.js Skills" icon="arrow-right">
+    Skills optimised for Next.js development and caching patterns.
+
+    `next-dev-loop` · `next-cache-components-adoption`
+  </Card>
+  <Card title="Craft Knowledge" icon="book">
+    Skills for distilling and publishing knowledge inside Craft.
+
+    `knowledge-distill` · `research-and-publish`
   </Card>
   <Card title="Superpowers" icon="bolt">
     Advanced agentic patterns for complex, multi-step work.
 
-    `dispatching-parallel-agents` · `test-driven-development` · `systematic-debugging`
+    `dispatching-parallel-agents` · `subagent-driven-development` · `test-driven-development` · `systematic-debugging` · `executing-plans` · `writing-plans` · `requesting-code-review` · `finishing-a-development-branch`
   </Card>
 </CardGroup>
 
@@ -82,7 +86,7 @@ Craft Agents ships curated skill packs you can install from **Settings → Skill
 
 You can also ask the agent directly:
 
-```
+```text
 Create a skill called review-pr that reviews pull requests for breaking changes,
 test coverage, and security issues — and always ends with a summary comment.
 ```

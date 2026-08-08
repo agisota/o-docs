@@ -1,7 +1,7 @@
 ---
-title: "Run Craft Agents as a Headless Remote Server"
+title: "Configure Craft Agents as a Remote Headless Server"
 sidebarTitle: "Remote Server"
-description: "Deploy the Craft Agents server on a VPS or cloud machine and connect your desktop app as a thin client over a secure WebSocket connection."
+description: "Deploy Craft Agents on a VPS or cloud host and connect the desktop as a thin client over WebSocket. Supports TLS, persistent sessions, and multi-device."
 ---
 
 Craft Agents can run as a headless server on any Linux machine — a VPS, a cloud instance, or a bare-metal box — while your desktop app connects to it as a lightweight thin client. All session logic, tool execution, and LLM calls happen on the remote machine, which means you can harness powerful cloud hardware, keep long-running sessions alive around the clock, and pick up exactly where you left off from any device.
@@ -16,11 +16,23 @@ Craft Agents can run as a headless server on any Linux machine — a VPS, a clou
 ## Setup overview
 
 <Steps>
-  <Step title="Start the server on your remote machine">
-    From the monorepo root, generate a bearer token and start the server in one command:
+  <Step title="Install Craft Agents on your remote machine">
+    Clone the repository and install dependencies:
 
     ```bash
-    CRAFT_SERVER_TOKEN=$(openssl rand -hex 32) bun run packages/server/src/index.ts
+    git clone https://github.com/lukilabs/craft-agents-oss.git
+    cd craft-agents-oss
+    bun install
+    ```
+  </Step>
+
+  <Step title="Start the server on your remote machine">
+    Generate a bearer token and start the server in one command:
+
+    ```bash
+    CRAFT_SERVER_TOKEN=$(openssl rand -hex 32) \
+    CRAFT_RPC_HOST=0.0.0.0 \
+    bun run server:start
     ```
 
     On startup the server prints its connection details to stdout:
@@ -38,15 +50,15 @@ Craft Agents can run as a headless server on any Linux machine — a VPS, a clou
   </Step>
 
   <Step title="Connect the desktop app as a thin client">
-    On your local machine, launch the Electron app in thin-client mode by setting the two environment variables:
+    On your local machine, launch the Craft Agents desktop app with the server URL and token set as environment variables:
 
     ```bash
-    CRAFT_SERVER_URL=wss://203.0.113.5:9100 \
+    CRAFT_SERVER_URL=ws://203.0.113.5:9100 \
     CRAFT_SERVER_TOKEN=<token> \
-    bun run electron:start
+    open -a "Craft Agents"
     ```
 
-    The desktop app renders the full UI, but every session, tool call, and LLM request runs on the remote server.
+    On Linux or Windows, set the variables in your shell environment before launching the app. The desktop app renders the full UI, but every session, tool call, and LLM request runs on the remote server.
   </Step>
 
   <Step title="Enable TLS (recommended)">
@@ -93,20 +105,21 @@ CRAFT_SERVER_TOKEN=<token> \
 CRAFT_RPC_HOST=0.0.0.0 \
 CRAFT_RPC_TLS_CERT=certs/cert.pem \
 CRAFT_RPC_TLS_KEY=certs/key.pem \
-bun run packages/server/src/index.ts
+bun run server:start
 ```
 
 The server will now print `CRAFT_SERVER_URL=wss://<your-public-ip>:9100`.
 
 ### Connect the desktop app over wss://
 
+Set both environment variables before launching the desktop app:
+
 ```bash
-CRAFT_SERVER_URL=wss://203.0.113.5:9100 \
-CRAFT_SERVER_TOKEN=<token> \
-bun run electron:start
+export CRAFT_SERVER_URL=wss://203.0.113.5:9100
+export CRAFT_SERVER_TOKEN=<token>
 ```
 
-If you used a self-signed certificate you'll need to add the CA to the desktop app's trust store, or use the CLI's `--tls-ca` flag when connecting programmatically.
+Then open Craft Agents normally. If you used a self-signed certificate, you'll need to add the CA to your OS trust store, or use the CLI's `--tls-ca` flag when connecting programmatically.
 
 <Tip>
   For production deployments, use a certificate issued by a trusted CA (for example, Let's Encrypt via Certbot) or terminate TLS at a reverse proxy such as Caddy or nginx. Both approaches avoid the self-signed certificate trust issue entirely.
@@ -118,13 +131,13 @@ The server process exits if the terminal closes. Use a process manager to keep i
 
 <CardGroup cols={2}>
   <Card title="systemd (Linux)" icon="gear">
-    Create `/etc/systemd/system/craft-agents.service`, set `ExecStart` to your start command with all environment variables, then run `systemctl enable --now craft-agents`.
+    Create `/etc/systemd/system/craft-agents.service`, set `ExecStart` to `bun run server:start` with all environment variables, then run `systemctl enable --now craft-agents`.
   </Card>
   <Card title="tmux / screen" icon="terminal">
     Start the server inside a `tmux` or `screen` session so it survives SSH disconnects:
     ```bash
     tmux new -s craft-agents
-    CRAFT_SERVER_TOKEN=<token> bun run packages/server/src/index.ts
+    CRAFT_SERVER_TOKEN=<token> CRAFT_RPC_HOST=0.0.0.0 bun run server:start
     # Detach with Ctrl+B, D
     ```
   </Card>

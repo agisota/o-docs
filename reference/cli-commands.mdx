@@ -1,5 +1,5 @@
 ---
-title: "craft-cli Command Reference"
+title: "craft-cli Command Reference: Commands, Flags, and Options"
 sidebarTitle: "Commands"
 description: "Full reference for all craft-cli commands: ping, health, sessions, send, invoke, listen, and more. Includes connection flags and output options."
 ---
@@ -276,7 +276,12 @@ craft-cli --validate-server --url ws://127.0.0.1:9100 --token <token>
 
 # Self-contained (auto-spawns a local server)
 craft-cli --validate-server
+
+# Show spawned server output (useful for debugging)
+craft-cli --validate-server --verbose
 ```
+
+Pass `--verbose` (or `-v`) to print the spawned server's stderr to your terminal. This is useful when a validation step fails and you need to see the server-side logs.
 
 <Note>
   This test **mutates workspace state** — it creates and deletes a temporary session, source, and skill. All resources are cleaned up whether the test passes or fails. Use `--json` for machine-readable results.

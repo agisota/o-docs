@@ -10,7 +10,7 @@ Automations let Craft Agents react to things that happen in your workspace — a
 
 Automations live in a single JSON file per workspace:
 
-```
+```text
 ~/.craft-agent/workspaces/{workspaceId}/automations.json
 ```
 
@@ -63,7 +63,7 @@ craft-agent automation lint
     </Note>
   </Tab>
   <Tab title="Agent Events">
-    Agent events are fired by the Claude SDK during a running session. Use them to react to tool activity, session lifecycle, or permission requests.
+    Agent events are fired during a running session — use them to react to tool activity, session lifecycle, or permission requests.
 
     | Event | Trigger |
     |---|---|
@@ -106,6 +106,8 @@ Spawns a new AI session with the given prompt text. Environment variables (see [
 | `prompt` | ✅ | — | Text sent to the agent. Supports `$VAR` expansion and `@mentions` |
 | `llmConnection` | — | Workspace default | Slug of an LLM connection configured in AI Settings |
 | `model` | — | Workspace default | Model ID supported by the provider |
+| `permissionMode` | — | Workspace default | Permission level for the spawned session (`safe`, `ask`, or `allow-all`) |
+| `labels` | — | — | Labels to apply automatically to the spawned session |
 
 ### Webhook action
 
@@ -207,7 +209,7 @@ Restart Craft Agents after adding new variables to your shell profile so they ar
 
 For `SchedulerTick` events, use a `cron` field instead of `matcher`. The cron format follows standard Unix convention:
 
-```
+```text
 minute  hour  day-of-month  month  day-of-week
 ```
 
@@ -305,6 +307,26 @@ Conditions are optional filters that run after the matcher or cron matches but b
 
   Conditions can be nested up to 8 levels deep.
 </Accordion>
+
+## Telegram topic routing
+
+When a Telegram supergroup is paired in **Settings → Messaging → Telegram**, set `telegramTopic` on a matcher to route its spawned sessions into a dedicated forum topic. The topic is created on first use and reused thereafter.
+
+```json
+{
+  "matcher": "^urgent$",
+  "telegramTopic": "Urgent Alerts",
+  "actions": [
+    { "type": "prompt", "prompt": "An urgent label was added. Triage the session and summarise what needs immediate attention." }
+  ]
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `telegramTopic` | string (1–128 chars) | Topic name. Created on first use, reused thereafter. Multiple matchers sharing the same value share one topic. |
+
+Topic routing requires a paired Telegram supergroup with Topics enabled, the bot connected and granted the **Manage Topics** admin permission in that group.
 
 ## Webhook retry behavior
 
@@ -419,6 +441,40 @@ When a limit is hit, further events of that type are silently dropped for the re
             {
               "type": "prompt",
               "prompt": "An urgent label was added to this session. Triage it — summarise the problem, identify blockers, and suggest immediate next steps."
+            }
+          ]
+        }
+      ]
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Permission mode escalation alert">
+  Only notify when permission mode changes specifically from `safe` to `allow-all`:
+
+  ```json
+  {
+    "version": 2,
+    "automations": {
+      "PermissionModeChange": [
+        {
+          "conditions": [
+            {
+              "condition": "state",
+              "field": "permissionMode",
+              "from": "safe",
+              "to": "allow-all"
+            }
+          ],
+          "actions": [
+            {
+              "type": "webhook",
+              "url": "${CRAFT_WH_SLACK_URL}",
+              "method": "POST",
+              "body": {
+                "text": ":warning: Permission escalated from safe to allow-all in *${CRAFT_SESSION_NAME}*"
+              }
             }
           ]
         }

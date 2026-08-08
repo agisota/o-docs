@@ -10,7 +10,7 @@ Craft Agents is configured primarily through its UI and config files, but severa
 
 ## Server variables
 
-These variables are read by the headless server process (`packages/server/src/index.ts`). Set them in your shell, a `.env` file, or your container environment before starting the server.
+These variables are read by the headless server process. Set them in your shell, a `.env` file, or your container environment before starting the server.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
@@ -27,7 +27,7 @@ These variables are read by the headless server process (`packages/server/src/in
 ```bash
 CRAFT_SERVER_TOKEN=$(openssl rand -hex 32) \
 CRAFT_RPC_HOST=0.0.0.0 \
-bun run packages/server/src/index.ts
+craft-agents-server
 ```
 
 **With TLS enabled:**
@@ -37,7 +37,7 @@ CRAFT_SERVER_TOKEN=<your-token> \
 CRAFT_RPC_HOST=0.0.0.0 \
 CRAFT_RPC_TLS_CERT=certs/cert.pem \
 CRAFT_RPC_TLS_KEY=certs/key.pem \
-bun run packages/server/src/index.ts
+craft-agents-server
 ```
 
 The server prints `CRAFT_SERVER_URL=wss://<your-ip>:9100` on startup when TLS is active.
@@ -52,7 +52,7 @@ The server prints `CRAFT_SERVER_URL=wss://<your-ip>:9100` on startup when TLS is
 
 ## CLI variables
 
-The CLI client (`apps/cli/src/index.ts`) reads these variables to establish its WebSocket connection. You can set them once in your shell profile instead of passing flags on every command.
+The CLI client reads these variables to establish its WebSocket connection. You can set them once in your shell profile instead of passing flags on every command.
 
 | Variable | Description |
 |---|---|
