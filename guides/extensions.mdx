@@ -1,0 +1,215 @@
+---
+title: "Manage Skills, Sources, and Automations in the Extension Center"
+sidebarTitle: "Extensions"
+description: "The Extension Center is a single catalog for every add-on that runs inside Craft Agents. Browse, install, update, and toggle extensions from one place."
+---
+
+The Extension Center is a unified catalog for every add-on you can run inside Craft Agents. Skill packs, sources, automations, agent runtimes, and curated marketplace packages all appear in the same list. You can browse, install, update, and toggle them without switching between settings pages.
+
+Open the Extension Center from **Settings → Extensions**. The old **Marketplace** entry now redirects here, so any bookmarks or deep links continue to work.
+
+## What counts as an extension?
+
+An extension is any installable add-on that changes what your agent can do. The catalog groups them into eight runtimes so you can tell how each one executes:
+
+| Runtime | What it is |
+|---|---|
+| `craft-native` | First-party Craft code shipped with the app. |
+| `craft-sandbox` | Extension Host process, sandboxed from the main app. |
+| `siyuan-plugin` | Plugins that run inside the SiYuan runtime. |
+| `mcp-source` | MCP servers registered as sources. |
+| `skill-pack` | Bundles of `SKILL.md` documents read by the agent. |
+| `automation-pack` | Automation triggers and actions for the automations engine. |
+| `web-widget` | Sandboxed webview surfaces. |
+| `agent-runtime` | External agent process supervisors. |
+
+Above the catalog, category filters (**Apps**, **Knowledge**, **Skills**, **Sources**, **Automations**, **Agent runtimes**, **Themes**) let you narrow by what the extension does rather than how it runs.
+
+## Sections
+
+The Extensions page is split into seven sections:
+
+- **Catalog** — everything available to install, from the curated Craft catalog and other registered providers.
+- **Installed** — what is currently present in the active workspace, projected from your skills, sources, and automations stores.
+- **Updates** — extensions whose lockfile ref has drifted from the catalog and can be updated.
+- **Permissions** — the permissions each installed extension holds today.
+- **Disabled** — extensions turned off in this workspace without uninstalling them.
+- **Developer** — status and diagnostics for the Extension Host, including host state, PID, and the list of loaded sandbox modules.
+- **Registries** — the catalog providers Craft queries. The curated Craft catalog is active by default.
+
+Every card shows the runtime badge, the workspaces it works in, and the permissions it requests. Craft highlights high-risk permissions so you can review them before installing: `shell.execute`, `filesystem.write`, `browser.automate`, `network.request`, and any `secrets.use:*`.
+
+## Install, update, and uninstall
+
+Curated marketplace entries expose **Install**, **Update**, and **Uninstall** actions directly on the card. Installs write to the target you select: **Global**, **Workspace**, or **Project**. They reuse the same marketplace machinery you already use elsewhere in Craft Agents.
+
+Updates appear automatically when a catalog entry's pinned ref no longer matches your local lockfile. Select **Update** to re-run the install against the new ref.
+
+<Note>
+  Skills, sources, and automations you already had before the Extension Center shipped continue to live in their own stores. The catalog reads from those stores, so nothing is migrated and nothing is lost.
+</Note>
+
+## Enable and disable without uninstalling
+
+Toggling an extension off in the Extension Center does not remove any files. Craft records the enable/disable state in a small bookkeeping file inside your config directory:
+
+```text
+~/.craft-agent/extensions/state.json
+```
+
+The file is a plain JSON object of extension IDs to booleans:
+
+```json
+{
+  "version": 1,
+  "enabled": {
+    "matt-pocock-skills": true,
+    "linear-source": false
+  },
+  "updatedAt": "2026-08-08T12:00:00.000Z"
+}
+```
+
+Because your skills, sources, and automations files are never rewritten, you can flip an extension back on later and pick up exactly where you left off.
+
+## Permissions
+
+Extensions declare the capabilities they need using a fixed vocabulary. The most common tokens are:
+
+| Permission | Grants |
+|---|---|
+| `knowledge.read` / `knowledge.write` / `knowledge.delete` | Access to workspace knowledge. |
+| `sessions.read` / `sessions.create` / `sessions.update` | Access to agent sessions. |
+| `browser.open` / `browser.read` / `browser.automate` | Opening, reading, or scripting the built-in browser. |
+| `filesystem.read` / `filesystem.write` | File access on the host. |
+| `network.request` | Outbound HTTP requests. |
+| `shell.execute` | Running shell commands. |
+| `automation.register` | Registering automation triggers or actions. |
+| `ui.panel` / `ui.command` | Contributing UI panels or commands. |
+| `secrets.use:<credential-id>` | Reading a specific stored credential. |
+
+You can also record extension-level permission overrides in your workspace's permissions config, alongside your existing agent permission modes.
+
+## Extension Host
+
+Extensions that declare the `craft-sandbox` runtime run inside the Extension Host, a dedicated Electron utility process spawned by Craft. The host is isolated from the main app. It starts with a scrubbed environment that drops `NODE_OPTIONS` and any variables that look like secrets. It can only load modules from an allowlisted directory.
+
+The default allowlist is your Extension Host sandbox directory:
+
+```text
+~/.craft-agent/extensions/sandbox
+```
+
+Set the `CRAFT_EXTENSION_SANDBOX_ROOT` environment variable to allow an additional root, for example when developing locally. Craft resolves each path through the OS realpath before loading and rejects symlinks that point outside the allowlist.
+
+### Host status
+
+Open **Settings → Extensions → Developer** to see the current host state. Each workspace runs its own isolated Extension Host with its own capability grants, and the Developer panel lists them all. For each host, Craft shows:
+
+- **Workspace** — which workspace the host belongs to.
+- **Host status** — `stopped`, `starting`, `running`, or `degraded`.
+- **PID** — the operating-system process ID when the host is running.
+- **Loaded extensions** — the sandbox extensions currently loaded in the host.
+- **executesSiyuanPlugins** — always `false`. SiYuan plugins never execute in the Extension Host.
+
+If the host crashes, Craft marks it `degraded` and reports the failure message on the same panel. Stopping the host intentionally leaves it `stopped` until you start it again.
+
+<Note>
+  The Extension Host does not auto-start when Craft launches. Start it from the Developer panel when you need to load or test a sandbox extension.
+</Note>
+
+### Network URL allowlist
+
+Sandbox extensions use `network.request` (backed by `proxyFetch`) to reach external URLs. You can restrict each extension to a specific set of URL prefixes from **Settings → Extensions → Developer → URL allowlist**.
+
+Craft stores the allowlist in your config directory:
+
+```text
+~/.craft-agent/extensions/url-allowlist.json
+```
+
+Enter an extension ID, add one or more URL prefixes, and save. Craft enforces the list with a prefix match on every outbound request. Once you save a non-empty list, the renderer cannot widen it at runtime.
+
+<Note>
+  An empty allowlist for an extension means "allow all URLs" and is intended as a development default. Set at least one prefix before shipping a sandbox extension.
+</Note>
+
+### Extension UI surfaces
+
+Sandbox extensions can render their own UI in a dedicated Craft panel. Craft opens each surface as an Electron `BrowserView` with `sandbox` and `contextIsolation` enabled. Every extension gets its own persistent session partition (`persist:ext-<extensionId>`), so cookies and storage stay scoped to that extension.
+
+You address extension surfaces as regular Craft routes:
+
+```text
+extension/{extensionId}/{viewId}
+```
+
+Opening the same `viewId` again reuses the existing surface instead of creating a second one, and closing the last owner tears the `BrowserView` down.
+
+## SiYuan plugins
+
+SiYuan plugins appear in the Extension Center under the `siyuan-plugin` runtime. Their code continues to run inside the SiYuan runtime. Craft never executes them in the main process or the Extension Host. Instead, Craft reads each plugin's `plugin.json` (plus an optional `craft` block) and projects the declared contributions into the shell.
+
+Each SiYuan plugin card shows a compatibility level badge so you know how deeply it integrates with Craft:
+
+| Level | What Craft projects |
+|---|---|
+| **L0** | Manifest is present but incomplete. The card is visible; no commands or panels appear in Craft. |
+| **L1** | Discovery only. The plugin appears in the catalog and is reachable through the SiYuan compatibility view. |
+| **L2** | Commands. Plugin commands show up in the omnibox and command palette as `siyuan-plugin:<name>:<command>`. |
+| **L3** | Craft projects commands, docks, tabs, and status items into its native panels. |
+
+Craft caps any plugin that declares `requiresFullChrome: true` in its `craft` block at L1, and adds a **Requires full SiYuan** tag to its card. Select **Open in full SiYuan** on the card to launch the compatibility view. The view loads the plugin inside the full SiYuan interface at `knowledge/notebook/__full__`.
+
+Craft maps docks declared by L3 plugins onto its own panel slots:
+
+| SiYuan dock | Craft slot |
+|---|---|
+| `LeftTop` | Navigator (primary) |
+| `LeftBottom` | Navigator (secondary) |
+| `RightTop` / `RightBottom` | Inspector |
+| `BottomLeft` / `BottomRight` | Bottom panel |
+
+Permissions declared in the `craft` block still go through the standard extension permission model. Contributions with no explicit grants receive the default install-time grants. Contributions that declare an empty grant list are dropped, so a plugin can opt out of a capability by declaring nothing.
+
+### Where the plugin list comes from
+
+Craft discovers installed SiYuan plugins in this order:
+
+1. If a knowledge connection is configured and healthy, Craft uses its token to reach the kernel and read the installed plugin list plus the petals file.
+2. If no connection is configured, Craft tries the token in the kernel's `conf.json` (next to your data directory) and probes the kernel with it.
+3. If the kernel is unreachable, Craft falls back to a filesystem scan of your SiYuan data directory, reading `data/plugins/*/plugin.json` and `storage/petal/petals.json`.
+4. If none of the above return anything, the list is empty.
+
+When both the kernel and the filesystem are available, Craft merges them. The kernel supplies the installed-package rows. The filesystem fills in the fuller `plugin.json` fields, including any `craft` block.
+
+The **Catalog** section can also show remote packages from the SiYuan Bazaar when the kernel is reachable. Installed plugins win over remote entries when they share a name, so a plugin only appears once.
+
+### Install and uninstall Bazaar plugins
+
+When a SiYuan kernel is running, Bazaar entries in the catalog expose **Install** and **Uninstall** actions. Craft never downloads the plugin zip itself. Instead, it asks the kernel to install or remove the package through the standard SiYuan Bazaar API. The files land under your SiYuan data directory, the same as if you installed the plugin from SiYuan directly.
+
+Craft enables newly installed plugins by default. Uninstalling a plugin also clears its entry from Craft's local enable/disable state.
+
+<Note>
+  Craft keeps tokens read from `conf.json` in memory only and never logs them. Craft also never downloads or spawns SiYuan itself.
+</Note>
+
+### Enable and disable
+
+Toggling a SiYuan plugin in the Extension Center always writes to Craft's own state store, so the setting sticks even when the kernel is offline. On the next refresh, Craft prefers its local store over the kernel's petals file. When the kernel is running, Craft also mirrors the change to it through the standard plugin-enable API.
+
+<Note>
+  Craft never rewrites SiYuan's `petals.json` itself. Bazaar install and uninstall require a running SiYuan kernel. If the kernel is offline, Craft hides the Bazaar entries and their actions.
+</Note>
+
+## Registries
+
+The Extension Center is designed so one catalog is not one runtime. The **Registries** section lists which catalog providers Craft is querying. The curated Craft catalog is always active. The SiYuan Bazaar is active when a SiYuan kernel is reachable, and contributes both installed and remote plugins to the catalog. Remote Bazaar entries also expose **Install** and **Uninstall** actions.
+
+## Related
+
+- [Skills](/guides/skills) — write your own `SKILL.md` files or install curated packs.
+- [Automations](/guides/automations) — configure event-driven workflows.
+- [Sources overview](/sources/overview) — connect MCP, API, and local sources.
+- [Permission modes](/concepts/permission-modes) — control what the agent can do inside a session.

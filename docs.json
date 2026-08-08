@@ -55,7 +55,8 @@
             "group": "Skills & Automations",
             "pages": [
               "guides/skills",
-              "guides/automations"
+              "guides/automations",
+              "guides/extensions"
             ]
           },
           {
