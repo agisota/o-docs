@@ -19,6 +19,28 @@ Use these shortcuts to create and manage agent sessions.
 | `Cmd+N` | Create a new session |
 | `Cmd+/` | Open the keyboard shortcuts dialog |
 
+## Command palette
+
+Press `Cmd+K` to open the command palette. The shortcut works everywhere in the app, including while you're typing in the knowledge editor or a browser pane. Type to search across sessions, settings, skills, sources, automations, and knowledge in a single list, or run any registered command by name. Prefix the query to narrow the scope:
+
+| Prefix | Scope |
+|--------|-------|
+| _(none)_ | Universal search across resources and commands |
+| `>` | Commands only |
+| `@` | References to sessions, sources, and knowledge items |
+| `/` | Skills |
+| `!` | Automations |
+| `?` | Full-text knowledge search (requires a connected knowledge source) |
+
+Escape a leading prefix character by typing `\` before it (for example, `\>ship` searches for the literal text `>ship`).
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+K` | Open the command palette |
+| `↑` / `↓` | Move the selection |
+| `Enter` | Run the selected command or open the selected item |
+| `Esc` | Close the palette |
+
 ## Navigation
 
 Move focus between the three main panels of the interface without touching the mouse.
@@ -65,6 +87,7 @@ On Windows and Linux, replace **Cmd** with **Ctrl** for all shortcuts in this re
 | macOS | Windows / Linux |
 |-------|-----------------|
 | `Cmd+N` | `Ctrl+N` |
+| `Cmd+K` | `Ctrl+K` |
 | `Cmd+1` | `Ctrl+1` |
 | `Cmd+2` | `Ctrl+2` |
 | `Cmd+3` | `Ctrl+3` |
