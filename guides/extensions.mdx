@@ -1,0 +1,102 @@
+---
+title: "Manage Skills, Sources, and Automations in the Extension Center"
+sidebarTitle: "Extensions"
+description: "The Extension Center is a single catalog for every add-on that runs inside Craft Agents. Browse, install, update, and toggle extensions from one place."
+---
+
+The Extension Center is a unified catalog for every add-on you can run inside Craft Agents. Skill packs, sources, automations, agent runtimes, and curated marketplace packages all appear in the same list, so you can browse, install, update, and toggle them without hopping between settings pages.
+
+You open the Extension Center from **Settings → Extensions**. The old **Marketplace** entry now redirects here, so any bookmarks or deep links continue to work.
+
+## What counts as an extension?
+
+An extension is any installable add-on that changes what your agent can do. The catalog groups them into eight runtimes so you can tell how each one executes:
+
+| Runtime | What it is |
+|---|---|
+| `craft-native` | First-party Craft code shipped with the app. |
+| `craft-sandbox` | Extension Host process, sandboxed from the main app. |
+| `siyuan-plugin` | Plugins that run inside the SiYuan runtime. |
+| `mcp-source` | MCP servers registered as sources. |
+| `skill-pack` | Bundles of `SKILL.md` documents read by the agent. |
+| `automation-pack` | Automation triggers and actions for the automations engine. |
+| `web-widget` | Sandboxed webview surfaces. |
+| `agent-runtime` | External agent process supervisors. |
+
+Above the catalog, category filters (**Apps**, **Knowledge**, **Skills**, **Sources**, **Automations**, **Agent runtimes**, **Themes**) let you narrow by what the extension does rather than how it runs.
+
+## Sections
+
+The Extensions page is split into seven sections:
+
+- **Catalog** — everything available to install, from the curated Craft catalog and other registered providers.
+- **Installed** — what is currently present in the active workspace, projected from your skills, sources, and automations stores.
+- **Updates** — extensions whose lockfile ref has drifted from the catalog and can be updated.
+- **Permissions** — the permissions each installed extension holds today.
+- **Disabled** — extensions turned off in this workspace without uninstalling them.
+- **Developer** — tools for local development. Live folder installs and verbose logs are coming in a later release.
+- **Registries** — the catalog providers Craft queries. The curated Craft catalog is active by default.
+
+Every card shows the runtime badge, the workspaces it works in, and the permissions it requests. High-risk permissions (`shell.execute`, `filesystem.write`, `browser.automate`, `network.request`, and any `secrets.use:*`) are highlighted so you can review them before installing.
+
+## Install, update, and uninstall
+
+Curated marketplace entries expose **Install**, **Update**, and **Uninstall** actions directly on the card. Installs write to the workspace you select as the target — **Global**, **Workspace**, or **Project** — and reuse the same marketplace machinery you already use elsewhere in Craft Agents.
+
+Updates appear automatically when a catalog entry's pinned ref no longer matches your local lockfile. Selecting **Update** re-runs the install against the new ref.
+
+<Note>
+  Skills, sources, and automations you already had before the Extension Center shipped continue to live in their own stores. The catalog reads from those stores, so nothing is migrated and nothing is lost.
+</Note>
+
+## Enable and disable without uninstalling
+
+Toggling an extension off in the Extension Center does not remove any files. Craft records the enable/disable state in a small bookkeeping file inside your config directory:
+
+```text
+~/.craft-agent/extensions/state.json
+```
+
+The file is a plain JSON object of extension IDs to booleans:
+
+```json
+{
+  "version": 1,
+  "enabled": {
+    "matt-pocock-skills": true,
+    "linear-source": false
+  },
+  "updatedAt": "2026-08-08T12:00:00.000Z"
+}
+```
+
+Because your skills, sources, and automations files are never rewritten, you can flip an extension back on later and pick up exactly where you left off.
+
+## Permissions
+
+Extensions declare the capabilities they need using a fixed vocabulary. The most common tokens are:
+
+| Permission | Grants |
+|---|---|
+| `knowledge.read` / `knowledge.write` / `knowledge.delete` | Access to workspace knowledge. |
+| `sessions.read` / `sessions.create` / `sessions.update` | Access to agent sessions. |
+| `browser.open` / `browser.read` / `browser.automate` | Opening, reading, or scripting the built-in browser. |
+| `filesystem.read` / `filesystem.write` | File access on the host. |
+| `network.request` | Outbound HTTP requests. |
+| `shell.execute` | Running shell commands. |
+| `automation.register` | Registering automation triggers or actions. |
+| `ui.panel` / `ui.command` | Contributing UI panels or commands. |
+| `secrets.use:<credential-id>` | Reading a specific stored credential. |
+
+You can also record extension-level permission overrides in your workspace's permissions config, alongside your existing agent permission modes.
+
+## Registries
+
+The Extension Center is designed so one catalog is not one runtime. The **Registries** section lists which catalog providers Craft is querying. Today the curated Craft catalog is active; additional providers like the SiYuan Bazaar are visible as stubs and will light up in a later release.
+
+## Related
+
+- [Skills](/guides/skills) — write your own `SKILL.md` files or install curated packs.
+- [Automations](/guides/automations) — configure event-driven workflows.
+- [Sources overview](/sources/overview) — connect MCP, API, and local sources.
+- [Permission modes](/concepts/permission-modes) — control what the agent can do inside a session.
